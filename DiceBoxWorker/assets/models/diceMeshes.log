@@ -1,0 +1,165 @@
+Exporter version: 2.80.1, Blender version: 2.92.0
+========= Conversion from Blender to Babylon.js =========
+	Scene settings used :
+		Inline textures     :  false
+		Material Type       :  PBR
+		Positions Precision :  4
+		Normals Precision   :  3
+		UVs Precision       :  3
+		Vert Color Precision:  3
+		Mat Weight Precision:  2
+		Keep Z-up r-handed  :  no
+		Texture directory   :  /Users/alifr/Development/dice-project/DiceBoxWorker/assets/models/
+	Python World class constructor completed
+	WARNING: No active camera has been assigned, or is not in a currently selected Blender layer
+	processing begun of mesh:  d20
+		WARNING: No materials have been assigned: 
+		Custom split normals with tangents being used
+		num positions      :  477
+		num normals        :  477
+		num tangents       :  1908
+		num uvs            :  954
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  740
+	processing begun of node:  020_locator_1
+	processing begun of node:  020_locator_10
+	processing begun of node:  020_locator_11
+	processing begun of node:  020_locator_12
+	processing begun of node:  020_locator_13
+	processing begun of node:  020_locator_14
+	processing begun of node:  020_locator_15
+	processing begun of node:  020_locator_16
+	processing begun of node:  020_locator_17
+	processing begun of node:  020_locator_18
+	processing begun of node:  020_locator_19
+	processing begun of node:  020_locator_2
+	processing begun of node:  020_locator_20
+	processing begun of node:  020_locator_3
+	processing begun of node:  020_locator_4
+	processing begun of node:  020_locator_5
+	processing begun of node:  020_locator_6
+	processing begun of node:  020_locator_7
+	processing begun of node:  020_locator_8
+	processing begun of node:  020_locator_9
+	processing begun of mesh:  d12
+		WARNING: No materials have been assigned: 
+		Custom split normals with tangents being used
+		num positions      :  526
+		num normals        :  526
+		num tangents       :  2104
+		num uvs            :  1052
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  756
+	processing begun of node:  012_locator_1
+	processing begun of node:  012_locator_2
+	processing begun of node:  012_locator_3
+	processing begun of node:  012_locator_4
+	processing begun of node:  012_locator_5
+	processing begun of node:  012_locator_6
+	processing begun of node:  012_locator_7
+	processing begun of node:  012_locator_8
+	processing begun of node:  012_locator_9
+	processing begun of node:  012_locator_10
+	processing begun of node:  012_locator_11
+	processing begun of node:  012_locator_12
+	processing begun of mesh:  d10
+		WARNING: No materials have been assigned: 
+		Custom split normals with tangents being used
+		num positions      :  333
+		num normals        :  333
+		num tangents       :  1332
+		num uvs            :  666
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  500
+	processing begun of node:  010_locator_0
+	processing begun of node:  010_locator_1
+	processing begun of node:  010_locator_2
+	processing begun of node:  010_locator_3
+	processing begun of node:  010_locator_4
+	processing begun of node:  010_locator_5
+	processing begun of node:  010_locator_6
+	processing begun of node:  010_locator_7
+	processing begun of node:  010_locator_8
+	processing begun of node:  010_locator_9
+	processing begun of mesh:  d100
+		WARNING: No materials have been assigned: 
+		Custom split normals with tangents being used
+		num positions      :  330
+		num normals        :  330
+		num tangents       :  1320
+		num uvs            :  660
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  500
+	processing begun of node:  100_locator_00
+	processing begun of node:  100_locator_10
+	processing begun of node:  100_locator_20
+	processing begun of node:  100_locator_30
+	processing begun of node:  100_locator_40
+	processing begun of node:  100_locator_50
+	processing begun of node:  100_locator_60
+	processing begun of node:  100_locator_70
+	processing begun of node:  100_locator_80
+	processing begun of node:  100_locator_90
+	processing begun of mesh:  d8
+		WARNING: No materials have been assigned: 
+		Custom split normals with tangents being used
+		num positions      :  215
+		num normals        :  215
+		num tangents       :  860
+		num uvs            :  430
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  296
+	processing begun of node:  008_locator_1
+	processing begun of node:  008_locator_2
+	processing begun of node:  008_locator_3
+	processing begun of node:  008_locator_4
+	processing begun of node:  008_locator_5
+	processing begun of node:  008_locator_6
+	processing begun of node:  008_locator_7
+	processing begun of node:  008_locator_8
+	processing begun of mesh:  d6
+		WARNING: No materials have been assigned: 
+		Custom split normals with tangents being used
+		num positions      :  193
+		num normals        :  193
+		num tangents       :  772
+		num uvs            :  386
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  300
+	processing begun of node:  006_locator_1
+	processing begun of node:  006_locator_2
+	processing begun of node:  006_locator_3
+	processing begun of node:  006_locator_4
+	processing begun of node:  006_locator_5
+	processing begun of node:  006_locator_6
+	processing begun of mesh:  d4
+		WARNING: No materials have been assigned: 
+		Custom split normals with tangents being used
+		num positions      :  108
+		num normals        :  108
+		num tangents       :  432
+		num uvs            :  216
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  148
+	processing begun of node:  004_locator_1
+	processing begun of node:  004_locator_2
+	processing begun of node:  004_locator_3
+	processing begun of node:  004_locator_4
+========= Writing of JSON file started =========
+	writing mesh:  d20
+	writing mesh:  d12
+	writing mesh:  d10
+	writing mesh:  d100
+	writing mesh:  d8
+	writing mesh:  d6
+	writing mesh:  d4
+========= Writing of JSON file completed =========
+========= end of processing =========
+elapsed time:  0 min, 0.3128 secs
