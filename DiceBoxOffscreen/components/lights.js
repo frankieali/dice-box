@@ -1,11 +1,15 @@
-// import { DirectionalLight, HemisphericLight, ShadowGenerator, Vector3 } from '@babylonjs/core'
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight'
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight'
-import '@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent'
 import { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator'
 import { Vector3 } from '@babylonjs/core/Maths/math.vector'
+import '@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent'
 
-function createLights(enableShadows) {
+const defaultOptions = {
+  enableShadows: true
+}
+
+function createLights(options = defaultOptions) {
+  const { enableShadows } = options
   const d_light = new DirectionalLight("DirectionalLight", new Vector3(-0.3, -1, -0.4))
   d_light.position = new Vector3(0,20,0)
   d_light.intensity = .5

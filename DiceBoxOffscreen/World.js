@@ -2,11 +2,21 @@ import { createCanvas } from './components/canvas'
 import worldWorker from './WorldOffscreen?worker'
 import diceWorker from './components/Dice/physics.worker?worker'
 
-let canvas, physicsWorker, physicsWorkerInit, offscreen, offscreenWorker, offscreenWorkerInit
+let canvas, physicsWorker, physicsWorkerInit, offscreen, offscreenWorker, offscreenWorkerInit, delay
+
+const defaultOptions = {
+  enableDebugging: false,
+  enableShadows: true,
+  delay: 10
+}
 
 class World {
   constructor(container, options = {}){
-    canvas = createCanvas(container, 'dice-canvas')
+    canvas = createCanvas({
+      selector: container,
+      id: 'dice-canvas'
+    })
+    this.config = {...defaultOptions, ...options}
 
     offscreen = canvas.transferControlToOffscreen()
     offscreenWorker = new worldWorker()
@@ -41,20 +51,13 @@ class World {
   }
 
   async initScene(options = {}) {
-    // console.log("initScene")
-    const defaultOptions = {
-      enableDebugging: false,
-      enableShadows: true,
-      usePointLights: false
-    }
-
     // initalize the offscreen worker
     offscreenWorker.postMessage({
       action: "init",
       canvas: offscreen,
       width: canvas.clientWidth,
       height:canvas.clientHeight,
-      config: {...defaultOptions, ...options}
+      config: {...this.config, options}
     }, [offscreen])
 
     offscreenWorker.onmessage = (e) => {
@@ -96,28 +99,29 @@ class World {
     // should there be a response?
   }
 
-  // roll(die) {
-  //   // console.log("roll that die!")
-  //   physicsWorker.postMessage({
-  //     action: 'rollDie',
-  //     die
-  //   })
-  // }
-
   roll(notation) {
     // reset the offscreen worker and physics worker with each new roll
-    offscreenWorker.postMessage({
-      action: "reset"
-    })
+    this.clear()
     const rolling = this.parse(notation)
-    for (var i = 0; i < rolling.number; i++) {
-      this.add({dieType:rolling.type})
+    for (var i = 0, len = rolling.number; i < len; i++) {
+      // space out adding the dice so they don't lump together too much
+      setTimeout(() => {
+        this.add({dieType:rolling.type})
+      }, i * this.config.delay)
     }
+  }
+
+  clear() {
+    // clear all physics die bodies
+    physicsWorker.postMessage({action: "clearDice"})
+    // clear all rendered die bodies
+    offscreenWorker.postMessage({action: "clearDice"})
   }
 
   // parse text die notation such as 2d10+3 => {number:2, type:6, modifier:3}
   // TODO: more notation support in the future such as 2d6 + 2d6
   // taken from https://github.com/ChapelR/dice-notation
+  // notation parsing could be it's own component or taken from npm. No need to reinvent it all.
   parse(notation) {
     const diceNotation = /(\d+)[dD](\d+)(.*)$/i
     const modifier = /([+-])(\d+)/

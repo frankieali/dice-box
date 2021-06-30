@@ -39,23 +39,17 @@ async function loadStandardMaterial(theme) {
 async function importTextureAsync(url) {
   return new Promise((resolve, reject) => {
     let texture = new Texture(
-      url,
-      null,
-      undefined,
-      false,
-      undefined,
-      () => {
-        resolve(texture)
-      },
-      () => {
-        reject("Unable to load texture")
-      }
+      url, // url: Nullable<string>
+      null, // sceneOrEngine: Nullable<Scene | ThinEngine>
+      undefined, // noMipmapOrOptions?: boolean | ITextureCreationOptions
+      false, // invertY?: boolean
+      undefined, // samplingMode?: number
+      () => resolve(texture), // onLoad?: Nullable<() => void>
+      () => reject("Unable to load texture") // onError?: Nullable<(message?: string
     )
   })
 }
 
-// perhaps a switch statement for less repitition?
-// const loadTheme = (theme) => themes[theme]()
 const loadTheme = async (theme) => {
   let material;
   switch (theme) {
@@ -70,7 +64,6 @@ const loadTheme = async (theme) => {
       material = await loadStandardMaterial(theme)
       // material = await loadPBRMaterial(theme)
       return material
-  
     default:
       material = await loadStandardMaterial(theme)
       return material

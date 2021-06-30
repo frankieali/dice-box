@@ -4,8 +4,7 @@ import DiceBox from './DiceBoxOffscreen'
 
 const box = new DiceBox('#scene-container', { 
   enableDebugging: false,
-  enableShadows: true,
-  usePointLights: false
+  enableShadows: true
 })
 
 // console.log(`box`, box)
@@ -14,12 +13,15 @@ const box = new DiceBox('#scene-container', {
  * TODO:
  *  1. DONE consolidate models into a single file to be loaded by webworker up front
  *  1. DONE Use shared array buffer with web worker for speed boost
- *  1. notation input for creating rolls
+ *  1. DONE (basic) notation input for creating rolls
  *  2. roll group class that triggers individual rolls plus rerolls
  *  3. basic roll math for roll groups
  *  4. support plug-ins for additional roll notations
  *  5. support plug-ins for additional dice models and textures (perhaps switch colliders back to a glb or babylon file)
  *  6. clear and reroll methods
+ *  7. make functions/methods more pure
+ *  8. different lighting options is a fun idea but not necessary at this time - deprecate feature for now - future plugin?
+ *  9. fix Babylon debug inspector
  * 
  * Future
  *  2. custom ammo build - custom IDL file to reduce file size -- https://github.com/kripken/ammo.js/pull/366
@@ -180,7 +182,8 @@ box.initScene()
 // })
 
 const form = document.getElementById("dice-to-roll")
-const notation = document.getElementById("notation")
+const notation = document.getElementById("input--notation")
+const clearBtn = document.getElementById("btn--clear")
 
 const submitForm = (e) => {
   e.preventDefault();
@@ -188,5 +191,6 @@ const submitForm = (e) => {
 }
 
 form.addEventListener("submit", submitForm)
+clearBtn.addEventListener("click", () => box.clear())
 
 

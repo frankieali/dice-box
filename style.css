@@ -19,13 +19,21 @@ body {
   position: relative;
 }
 
-#notation {
+.inputs {
   position: absolute;
   top: 5%;
-  left: 50%;
-  transform: translateX(-50%);
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+#input--notation {
   padding: 10px;
+  margin-right: 5px;
   text-align: center;
   border: 2px solid;
   border-radius: 5px;
+}
+#btn--clear {
+  padding: 10px;
 }

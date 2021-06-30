@@ -9,9 +9,12 @@
   <body>
     <div id="scene-container">
       <!-- Our <canvas> will be inserted here -->
-      <form id="dice-to-roll">
-        <input id="notation" />
-      </form>
+      <div class="inputs">
+        <form id="dice-to-roll">
+          <input id="input--notation" placeholder="20d20" />
+        </form>
+        <button id="btn--clear">Clear</button>
+      </div>
     </div>
     <script type="module" src="/main.js"></script>
   </body>

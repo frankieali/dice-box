@@ -1,6 +1,5 @@
 // import { Mesh, PhysicsImpostor, SceneLoader, TransformNode, Vector3 } from '@babylonjs/core'
 import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader'
-// import '@babylonjs/core/Loading/Plugins/babylonFileLoader'
 import '@babylonjs/loaders/glTF/2.0/glTFLoader'
 import '@babylonjs/core/Meshes/instancedMesh'
 import { Vector3 } from '@babylonjs/core/Maths/math.vector'
@@ -26,25 +25,8 @@ class Dice {
     this.setTimeout = null
     this.createInstance()
   }
-  
-  get result() {
-    return this._result
-  }
 
-  set result(val) {
-    this._result = val
-    this.resultListener(val)
-  }
-
-  resultListener(val) {
-    // console.log("no active listener function")
-  }
-
-  registerNewListener(externalListenerFunction) {
-    this.resultListener = externalListenerFunction
-  }
-
-  // TODO: this does not have to be on every die. Make it static
+  // TODO: this does not have to be on every die. Make it static?
   createInstance(options) {
     // create die instance
     const dieInstance = diceCombos[this.comboKey].createInstance(`${this.dieType}-instance-${count}`)
@@ -87,52 +69,36 @@ class Dice {
     count++
   }
 
+  get result() {
+    return this._result
+  }
+
+  set result(val) {
+    this._result = val
+    this.resultListener(val)
+  }
+
+  resultListener(val) {
+    // console.log("no active listener function")
+  }
+
+  registerNewListener(externalListenerFunction) {
+    this.resultListener = externalListenerFunction
+  }
+
   // TODO: add themeOptions for colored materials, must ensure theme and themeOptions are unique somehow
   static async loadDie(options) {
     const { dieType, theme = defaultTheme} = options
+    // create a key for this die type and theme combo for caching and instance creation
     const comboKey = `${dieType}_${theme}`
 
-    // console.log(`Die options to load`, options)
-
-    // load the theme first
+    // load the theme first - each theme should contain the textures for all dice types
     if (!Object.keys(themes).includes(theme)) {
       themes[theme] = await loadTheme(theme)
     }
 
-    // load the model
-    // TODO: getting multiple "original" models since meshes[dieType] is flagged after loading assets - must await or Promise
-    // if (!Object.keys(meshes).includes(dieType)) {
-    //   const model = await SceneLoader.ImportMeshAsync(["die","collider"], "./DiceBox/assets/models/", `${dieType}.glb`)
-    //   const root = model.meshes[0]
-    //   // assuming
-    //   const die = model.meshes[1]
-    //   const collider = model.meshes[2]
-
-    //   root.setEnabled(false)
-    //   root.id = `${dieType}-original`
-    //   root.name = `${dieType}-original`
-      
-    //   die.setEnabled(false)
-    //   die.receiveShadows = true
-    //   die.freezeNormals()
-      
-    //   collider.setEnabled(false)
-    //   collider.isVisible = false
-    //   collider.forceSharedVertices()
-    //   // collider.doNotSyncBoundingInfo = true
-    //   // collider.physicsImpostor = new PhysicsImpostor(collider, PhysicsImpostor.ConvexHullImpostor)
-
-    //   // cache model data for instances
-    //   meshes[dieType] = {
-    //     root,
-    //     die,
-    //     collider
-    //   }
-    // }
-
     // cache die and theme combo for instances
     if (!Object.keys(diceCombos).includes(comboKey)) {
-      // console.log(`meshes`, meshes)
       const die = meshes[dieType].clone(comboKey)
       die.material = themes[theme]
       // die.material.freeze()

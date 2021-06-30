@@ -1,11 +1,15 @@
-// import { PointLight, ShadowGenerator, Vector3 } from '@babylonjs/core'
 import { PointLight } from '@babylonjs/core/Lights/pointLight'
-import '@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent'
-import '@babylonjs/core/Engines/Extensions/engine.cubeTexture'
 import { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator'
 import { Vector3 } from '@babylonjs/core/Maths/math.vector'
+import '@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent'
+import '@babylonjs/core/Engines/Extensions/engine.cubeTexture'
 
-function createPointLights(enableShadows) {
+const defaultOptions = {
+  enableShadows: true
+}
+
+function createPointLights(options = defaultOptions) {
+  const { enableShadows } = options
 
   const p_light1 = new PointLight("PointLight1", new Vector3(-10,35,10))
   p_light1.intensity = .6
