@@ -56,7 +56,7 @@ self.onmessage = (e) => {
           case "updates": // dice status/position updates from physics worker
             // get dice that are sleeping.
             // console.log(`e.data.updates`, e.data.updates)
-            const asleep = e.data.updates.sleepingBodies
+            const asleep = e.data.updates.asleep
             // loop through all the sleeping dice
             asleep.reverse().forEach(async (dieIndex,i) => {
               // remove the sleeping die from the dieCache. It's been removed from the physics simulation and will no longer send position updates in the data array

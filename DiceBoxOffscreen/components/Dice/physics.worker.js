@@ -1,7 +1,6 @@
 var Module = { TOTAL_MEMORY: 256 * 1024 * 1024 }
 import * as AmmoJS from "ammo.js/builds/ammo.wasm.js";
 import { lerp } from '../../helpers'
-import { AmmoDebugDrawer } from './debugDrawer'
 
 const config = {
   locateFile: () => '../../assets/ammo/ammo.wasm.wasm'
@@ -9,7 +8,7 @@ const config = {
 
 // there's probably a better place for these variables
 let bodies = []
-// let sleepingBodies = []
+let sleepingBodies = []
 let colliders = {}
 let last = new Date().getTime()
 let physicsWorld
@@ -52,10 +51,11 @@ self.onmessage = (e) => {
       break
     case "clearDice":
       // clear all bodies
-
       stopLoop = true
       bodies.forEach(body => physicsWorld.removeRigidBody(body))
+      sleepingBodies.forEach(body => physicsWorld.removeRigidBody(body))
       bodies = []
+      sleepingBodies = []
       // restart the simulation loop
       stopLoop = false
       loop()
@@ -352,7 +352,7 @@ self.onmessage = (e) => {
 
   const update = (delta) => {
     let movements = []
-    let sleepingBodies = []
+    let asleep = []
     const emptyVector = setVector3(0,0,0)
 
     // step world
@@ -370,7 +370,7 @@ self.onmessage = (e) => {
         // zero out anything left
         rb.setLinearVelocity(emptyVector)
         rb.setAngularVelocity(emptyVector)
-        sleepingBodies.push(i)
+        asleep.push(i)
         continue
       }
       const ms = rb.getMotionState()
@@ -392,11 +392,11 @@ self.onmessage = (e) => {
     }
 
     // this must be a reverse loop so it does not alter the array index numbers
-    for (let i = sleepingBodies.length - 1; i >= 0; i--) {
-      const removeBody = bodies.splice(sleepingBodies[i],1)
+    for (let i = asleep.length - 1; i >= 0; i--) {
+      sleepingBodies.push(bodies.splice(asleep[i],1)[0])
     }
 
-    return {movements, sleepingBodies}
+    return {movements, asleep}
   }
 
   const loop = () => {
