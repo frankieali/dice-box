@@ -22,7 +22,7 @@ let tmpBtTrans
 let runTime = 15000
 let stopLoop = false
 let startPosition = [0,15,0]
-let spinForce = 20
+let spinForce = 12
 let throwForce = 20
 let sharedVector3
 
@@ -177,7 +177,13 @@ self.onmessage = (e) => {
       // pos = { x: 0, y: 0, z: 0 },
       // quat = { x: 0, y: 0, z: 0, w: 1 }
       pos = [0,0,0],
-      quat = [0,0,0,-1],
+      // quat = [0,0,0,-1],
+      quat = [
+        lerp(-1.5, 1.5, Math.random()),
+        lerp(-1.5, 1.5, Math.random()),
+        lerp(-1.5, 1.5, Math.random()),
+        -1
+      ],
       scale = [1,1,1],
       friction = .9,
       restitution = .2
@@ -288,7 +294,7 @@ self.onmessage = (e) => {
       mass: colliders[cType].physicsMass,
       scaling: colliders[cType].scaling,
       pos: startPosition,
-      quat: colliders[cType].rotationQuaternion,
+      // quat: colliders[cType].rotationQuaternion,
     })
     newDie.id = id
     physicsWorld.addRigidBody(newDie)
