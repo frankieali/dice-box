@@ -19,7 +19,7 @@ This project was inspired by:
 
  - [Owl Bear Rodeo](https://www.owlbear.rodeo/) - They have a great dice box implemented with React. I'm still using their dice textures while in dev
 
- - [Teal Dice](http://a.teall.info/dice/) - Wonderful dice roller that should be updated and modularized. Check out [Major Victory's version](http://dnd.majorsplace.com/)
+ - [Teal Dice](http://a.teall.info/dice/) - Wonderful dice roller that should be updated and modularized. Check out [Major Victory's version](http://dnd.majorsplace.com/dice)
 
  - [yandeu/ammo-worker-test](https://github.com/yandeu/ammo-worker-test) - Great example of how to get a web worker running with a 3D engine
 
