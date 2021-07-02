@@ -5,6 +5,7 @@ Performance has been micro-optimized for Chrome browsers. Implemented with web w
 Fallback support for other browsers coming soon.
 
 ## demo
-I actually got it working
+I actually got it working. This is just an early prototype.
 http://dice-box.s3-website.us-east-2.amazonaws.com/
-Go ahead, roll 1000d6.
+Go ahead, roll 1000d6. Individual die rolls appear in the developer's console.
+
