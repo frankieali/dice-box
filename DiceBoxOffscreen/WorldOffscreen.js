@@ -32,6 +32,10 @@ self.onmessage = (e) => {
 			Dice.resetCount()
 			count = 0
 
+			scene.render()
+			// setTimeout(() => {},10)
+			engine.stopRenderLoop()
+
       dieCache = []
       sleeperCache = []
 

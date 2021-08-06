@@ -45,6 +45,7 @@ const box = new DiceBox('#scene-container', {
  * 13. set gravity / force / spin options
  * 14. pull out camera to prevent distortion at edges
  * 15. Allow for mapped values, for non-numerical dice: 1 = success, 2 = failure, 3 = null - for future plugins
+ * 16. Often, the first roll after page refresh does not apply forces. The dice just drop.
  * 
  * Future
  *  2. custom ammo build - custom IDL file to reduce file size -- https://github.com/kripken/ammo.js/pull/366
