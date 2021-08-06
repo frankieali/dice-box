@@ -20,10 +20,10 @@ let worldWorkerPort
 let tmpBtTrans
 let runTime = 15000
 let stopLoop = false
-let startPosition = [0,15,0]
+let startPosition = [0,20,0]
 let spinForce = 20
 let throwForce = 20
-let gravity = -9.81 * 5
+let gravity = -9.81 * 4
 let sharedVector3
 
 
@@ -191,7 +191,7 @@ self.onmessage = (e) => {
       ],
       scale = [1,1,1],
       friction = .9,
-      restitution = .2
+      restitution = .4
     } = params
 
     // apply position and rotation
@@ -242,7 +242,7 @@ self.onmessage = (e) => {
     const groundInfo = new Ammo.btRigidBodyConstructionInfo(0, groundMotionState, groundShape, localInertia)
     const groundBody = new Ammo.btRigidBody(groundInfo)
     groundBody.setFriction(1)
-    groundBody.setRestitution(0.2)
+    groundBody.setRestitution(0.3)
     physicsWorld.addRigidBody(groundBody)
 
     const wallTopTransform = new Ammo.btTransform()
@@ -253,7 +253,7 @@ self.onmessage = (e) => {
     const topInfo = new Ammo.btRigidBodyConstructionInfo(0, topMotionState, wallTopShape, localInertia)
     const topBody = new Ammo.btRigidBody(topInfo)
     topBody.setFriction(1)
-    topBody.setRestitution(0.2)
+    topBody.setRestitution(0.3)
     physicsWorld.addRigidBody(topBody)
 
     const wallBottomTransform = new Ammo.btTransform()
@@ -264,7 +264,7 @@ self.onmessage = (e) => {
     const bottomInfo = new Ammo.btRigidBodyConstructionInfo(0, bottomMotionState, wallBottomShape, localInertia)
     const bottomBody = new Ammo.btRigidBody(bottomInfo)
     bottomBody.setFriction(1)
-    bottomBody.setRestitution(0.2)
+    bottomBody.setRestitution(0.3)
     physicsWorld.addRigidBody(bottomBody)
 
     const wallRightTransform = new Ammo.btTransform()
@@ -275,7 +275,7 @@ self.onmessage = (e) => {
     const rightInfo = new Ammo.btRigidBodyConstructionInfo(0, rightMotionState, wallRightShape, localInertia)
     const rightBody = new Ammo.btRigidBody(rightInfo)
     rightBody.setFriction(1)
-    rightBody.setRestitution(0.2)
+    rightBody.setRestitution(0.3)
     physicsWorld.addRigidBody(rightBody)
 
     const wallLeftTransform = new Ammo.btTransform()
@@ -286,7 +286,7 @@ self.onmessage = (e) => {
     const leftInfo = new Ammo.btRigidBodyConstructionInfo(0, leftMotionState, wallLeftShape, localInertia)
     const leftBody = new Ammo.btRigidBody(leftInfo)
     leftBody.setFriction(1)
-    leftBody.setRestitution(0.2)
+    leftBody.setRestitution(0.3)
     physicsWorld.addRigidBody(leftBody)
   }
 
@@ -374,7 +374,7 @@ self.onmessage = (e) => {
       const rb = bodies[i]
       const speed = rb.getLinearVelocity().length()
       const tilt = rb.getAngularVelocity().length()
-      if(speed < .01 && tilt < .001) {
+      if(speed < .01 && tilt < .01) {
         rb.asleep = true
         rb.setMassProps(0)
         rb.forceActivationState(3)
