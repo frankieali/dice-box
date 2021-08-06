@@ -27,7 +27,7 @@ body {
   justify-content: center;
 }
 
-#input--notation {
+.input {
   padding: 10px;
   margin-right: 5px;
   text-align: center;

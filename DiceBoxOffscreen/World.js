@@ -3,6 +3,7 @@ import worldWorker from './WorldOffscreen?worker'
 import diceWorker from './components/Dice/physics.worker?worker'
 
 let canvas, physicsWorker, physicsWorkerInit, offscreen, offscreenWorker, offscreenWorkerInit, delay
+let rollData = {}, rollId = 0
 
 const defaultOptions = {
   enableDebugging: false,
@@ -48,6 +49,8 @@ class World {
       offscreenWorker.postMessage({action: "resize", width: canvas.clientWidth, height:canvas.clientHeight});
       physicsWorker.postMessage({action: "resize", width: canvas.clientWidth, height:canvas.clientHeight});
     })
+
+		this.onRollComplete = () => {}
   }
 
   async initScene(options = {}) {
@@ -66,6 +69,15 @@ class World {
         // console.log("received worldOffscreenWorker message: init-complete")
         offscreenWorkerInit()
       }
+			if(e.data.action === 'roll-result') {
+				const die = e.data.die
+				// map die results back to our rollData
+				rollData[die.groupId].rolls[die.rollId].result = die.result
+			}
+			if(e.data.action === 'roll-complete') {
+				console.log(`rollData`, rollData)
+				this.onRollComplete(rollData)
+			}
     }
 
     // initialize the ammojs physics worker
@@ -90,28 +102,82 @@ class World {
 
   add(options) {
     // console.log("add die from main")
+		if (!options.groupId){
+			options.groupId = 0
+		}
+		if(!options.rollId) {
+			options.rollId = rollId++
+		}
+		
+		rollData[options.groupId].rolls[options.rollId] = {
+			groupId: options.groupId,
+			type: options.dieType,
+		}
     offscreenWorker.postMessage({
       action: "addDie",
       options
     })
-    // add die to physics worker here?
-    // do we need to pass a unique identifyer?
-    // should there be a response?
   }
 
+	reroll(notation) {
+		this.add({
+			...notation,
+			dieType: notation.type
+		})
+	}
+
+	// only accepts simple notations such as 2d20
   roll(notation) {
     // reset the offscreen worker and physics worker with each new roll
     this.clear()
-    const rolling = this.parse(notation)
-    for (var i = 0, len = rolling.number; i < len; i++) {
-      // space out adding the dice so they don't lump together too much
-      setTimeout(() => {
-        this.add({dieType:rolling.type})
-      }, i * this.config.delay)
-    }
+		// console.log(`notation`, notation)
+
+		const rollSet = (roll) => {
+			// rolling a set of dice such as 4d20
+			// create an object to store this roll with a unique id
+			// { id: UUID, notation: '4d20', rolls: []}
+			console.log(`roll`, roll)
+			console.log(`rollData`, rollData)
+			rollData[roll.groupId].rolls = {}
+			for (var i = 0, len = roll.number; i < len; i++) {
+				this.add({dieType: roll.type, groupId: roll.groupId})
+			}
+		}
+
+		if(typeof notation === 'string') {
+			let parsedNotation = this.parse(notation)
+			rollData = parsedNotation
+			rollSet(parsedNotation)
+		}
+
+		// if(notation.constructor === Object) {
+		// 	rollData.push(roll)
+		// 	rollSet(roll)
+		// }
+
+		// TODO: using .push will create object reference and mutate original notation values. Good thing?
+		if(Array.isArray(notation)) {
+			// rolling each group
+			notation.forEach(roll => {
+				if(typeof roll === 'string') {
+					let parsedNotation = this.parse(roll)
+					rollData.push(parsedNotation)
+					rollSet(parsedNotation)
+				}
+				else {
+					// console.log(`roll`, roll)
+					rollData.push(roll)
+					rollSet(roll)
+				}
+			})
+		}
+
   }
 
   clear() {
+		// reset the rollId and rollData
+		rollId = 0
+		rollData = []
     // clear all physics die bodies
     physicsWorker.postMessage({action: "clearDice"})
     // clear all rendered die bodies
@@ -121,7 +187,6 @@ class World {
   // parse text die notation such as 2d10+3 => {number:2, type:6, modifier:3}
   // TODO: more notation support in the future such as 2d6 + 2d6
   // taken from https://github.com/ChapelR/dice-notation
-  // notation parsing could be it's own component or taken from npm. No need to reinvent it all.
   parse(notation) {
     const diceNotation = /(\d+)[dD](\d+)(.*)$/i
     const modifier = /([+-])(\d+)/
@@ -133,15 +198,17 @@ class World {
       }
       return n
     }
-    var roll = cleanNotation.match(diceNotation), mod = 0;
-    var msg = 'Invalid notation: ' + notation + '';
+
+    const roll = cleanNotation.match(diceNotation);
+		let mod = 0;
+    const msg = 'Invalid notation: ' + notation + '';
 
     if (roll.length < 3) {
       throw new Error(msg);
     }
     if (roll[3] && modifier.test(roll[3])) {
-      var modParts = roll[3].match(modifier);
-      var basicMod = validNumber(modParts[2], msg);
+      const modParts = roll[3].match(modifier);
+      let basicMod = validNumber(modParts[2], msg);
       if (modParts[1].trim() === '-') {
         basicMod *= -1;
       }

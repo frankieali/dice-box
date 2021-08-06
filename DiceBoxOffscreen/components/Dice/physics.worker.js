@@ -1,5 +1,4 @@
-var Module = { TOTAL_MEMORY: 256 * 1024 * 1024 }
-import * as AmmoJS from "ammo.js/builds/ammo.wasm.js";
+import * as AmmoJS from "ammo.js/builds/ammo.wasm.js"
 import { lerp } from '../../helpers'
 
 const config = {
@@ -22,8 +21,9 @@ let tmpBtTrans
 let runTime = 15000
 let stopLoop = false
 let startPosition = [0,15,0]
-let spinForce = 12
+let spinForce = 20
 let throwForce = 20
+let gravity = -9.81 * 5
 let sharedVector3
 
 
@@ -58,7 +58,8 @@ self.onmessage = (e) => {
       sleepingBodies = []
       // restart the simulation loop
       stopLoop = false
-      loop()
+			// TODO: need to step animation loop one frame
+      // loop()
       break
     case "connect":
       // console.log("connecting to port", e.ports[0])
@@ -75,6 +76,10 @@ self.onmessage = (e) => {
             break;
           case "stopSimulation":
             stopLoop = true
+            break;
+          case "resumeSimulation":
+            stopLoop = false
+						loop()
             break;
           default:
             console.error("action not found in physics worker from worldOffscreen worker:", e.data.action)
@@ -145,7 +150,7 @@ self.onmessage = (e) => {
 
       const box = addBoxToWorld()
 
-      loop()
+      // loop()
   
   }
 
@@ -351,7 +356,7 @@ self.onmessage = (e) => {
       solver,
       collisionConfiguration
     )
-    World.setGravity(setVector3(0, -9.81 * 3, 0))
+    World.setGravity(setVector3(0, gravity, 0))
   
     return World
   }

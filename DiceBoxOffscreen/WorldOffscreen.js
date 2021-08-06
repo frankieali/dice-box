@@ -5,7 +5,7 @@ import { createDiceBox } from './components/diceBox'
 import { createLights } from './components/lights'
 import Dice from './components/Dice'
 
-let canvas, config, engine, scene, camera, lights, physicsWorkerPort, dieCache = [], sleeperCache = []
+let canvas, config, engine, scene, camera, lights, physicsWorkerPort, dieCache = [], sleeperCache = [], count = 0
 
 // these are messages sent to this worker from World.js
 self.onmessage = (e) => {
@@ -18,7 +18,10 @@ self.onmessage = (e) => {
       break
     case "addDie":
       // console.log("time to add die", e.data.options)
-      add(e.data.options)
+			// space out adding the dice so they don't lump together too much
+			setTimeout(() => {
+				add(e.data.options)
+			}, count++ * config.delay)
       break
     case "clearDice":
       // stop anything that's currently rendering
@@ -26,12 +29,15 @@ self.onmessage = (e) => {
       // clear all dice
       dieCache.forEach(die => die.mesh.dispose())
       sleeperCache.forEach(die => die.mesh.dispose())
+			Dice.resetCount()
+			count = 0
 
       dieCache = []
       sleeperCache = []
 
       // start rendering again
-      render()
+			// TODO: need to step animation loop one frame
+      // render()
       break
     case "resize":
       canvas.width = e.data.width
@@ -54,23 +60,14 @@ self.onmessage = (e) => {
       physicsWorkerPort.onmessage = (e) => {
         switch (e.data.action) {
           case "updates": // dice status/position updates from physics worker
+					// TODO: time to move this to it's own function
             // get dice that are sleeping.
             // console.log(`e.data.updates`, e.data.updates)
             const asleep = e.data.updates.asleep
             // loop through all the sleeping dice
             asleep.reverse().forEach(async (dieIndex,i) => {
               // remove the sleeping die from the dieCache. It's been removed from the physics simulation and will no longer send position updates in the data array
-              // if(asleep.length > 0) {
-              //   console.log("========= before splice =========")
-              //   dieCache.forEach(die => console.log(`die`, die))
-              //   console.log("========= before splice =========")
-              // }
               const sleeper = dieCache.splice(dieIndex,1)[0]
-              // if(asleep.length > 0) {
-              //   console.log("========= after splice =========")
-              //   dieCache.forEach(die => console.log(`die`, die))
-              //   console.log("========= after splice =========")
-              // }
               // mark this die as asleep
               sleeper.asleep = true
               // cache all the dice that are asleep
@@ -92,12 +89,21 @@ self.onmessage = (e) => {
                   } else {
                     result = d100Result + d10Result
                   }
-                  // TODO: should probably be an event here
-                  console.log(`d100 result:`, result)
+                  // console.log(`d100 result:`, result)
+									self.postMessage({action:"roll-result", die: {
+										rollId: d100.rollId,
+										groupId: d100.groupId,
+										result
+									}})
                 }
               } else {
-                // TODO: should probably be an event here
-                console.log(`${sleeper.dieType} result:`, result)
+                // console.log(`${sleeper.dieType} result:`, result)
+								// console.log(`sleeper`, sleeper)
+								self.postMessage({action:"roll-result", die: {
+									rollId: sleeper.rollId,
+									groupId: sleeper.groupId,
+									result: sleeper.result
+								}})
               }
             })
 
@@ -105,6 +111,7 @@ self.onmessage = (e) => {
             const updates = e.data.updates.movements
             // apply the dice position updates to the scene meshes
             handleUpdates(updates)
+
             break;
         
           default:
@@ -142,7 +149,7 @@ const initScene = async () => {
   await Dice.loadModels()
   
   // start the render engine
-  render()
+  // render()
 
   // init complete - let the world know
   self.postMessage({action:"init-complete"})
@@ -152,7 +159,17 @@ const initScene = async () => {
 const render = () => {
   // document.body.addEventListener('click',()=>engine.stopRenderLoop())
   engine.runRenderLoop(renderLoop.bind(this))
+	physicsWorkerPort.postMessage({
+		action: "resumeSimulation",
+	})
 }
+
+// const resumeRender = () => {
+// 	render()
+// 	physicsWorkerPort.postMessage({
+// 		action: "resumeSimulation",
+// 	})
+// }
 
 const renderLoop = () => {
   // TODO: now that we're caching both a dieCache and a sleeperCache, we can probably rework this
@@ -165,6 +182,9 @@ const renderLoop = () => {
     physicsWorkerPort.postMessage({
       action: "stopSimulation",
     })
+		self.postMessage({
+			action: "roll-complete"
+		})
   }
   // otherwise keep on rendering
   else {
@@ -174,20 +194,29 @@ const renderLoop = () => {
 
 // add a die to the scene
 const add = async (options) => {
+	if(engine.activeRenderLoops.length === 0) {
+		render()
+	}
   // loadDie allows you to specify dieType and theme and returns the options you passed in
   const newDie = await Dice.loadDie(options).then( response =>  {
     // after the die model and textures have loaded we can add the die to the scene for rendering
     return new Dice(response, lights, config.enableShadows)
   })
 
+	newDie.rollId = options.rollId
+	newDie.groupId = options.groupId
+
+	// console.log(`newDie`, newDie)
+
   // save the die just created to the cache
   dieCache.push(newDie)
-    // tell the physics engine to roll this die type - which is a low poly collider
-    physicsWorkerPort.postMessage({
-      action: "addDie",
-      die: options.dieType,
-      id: newDie.id
-    })
+
+	// tell the physics engine to roll this die type - which is a low poly collider
+	physicsWorkerPort.postMessage({
+		action: "addDie",
+		die: options.dieType,
+		id: newDie.id
+	})
 
   // for d100's we need to add an additional d10 and pair it up with the d100 just created
   if(options.dieType === 'd100') {
@@ -204,10 +233,13 @@ const add = async (options) => {
     dieCache.push(newDie.d10Instance)
     physicsWorkerPort.postMessage({
       action: "addDie",
-      die: 'd10'
+      die: 'd10',
+			id: newDie.d10Instance.id
     })
   // }, 1000)
   }
+
+	// console.log(`newDie`, newDie)
 
   // return the die instance
   return newDie

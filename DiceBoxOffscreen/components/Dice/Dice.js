@@ -2,43 +2,51 @@
 import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader'
 import '@babylonjs/loaders/glTF/2.0/glTFLoader'
 import '@babylonjs/core/Meshes/instancedMesh'
-import { Vector3 } from '@babylonjs/core/Maths/math.vector'
 
 import { loadTheme } from './themes'
-import { lerp } from '../../helpers'
 
 // caching some variables here
-let meshes = {}, themes = {}, diceCombos = {}, count = 1, lights = [], defaultTheme = 'nebula'
+let meshes = {}, themes = {}, diceCombos = {}, count = 1, defaultTheme = 'nebula'
 
 class Dice {
-
-  constructor({dieType, theme = defaultTheme}, sceneLights, enableShadows) {
-    lights = sceneLights
+  constructor({dieType = 'd20', theme = defaultTheme, ...rest}, sceneLights, enableShadows) {
+		Object.assign(this, rest)
     this.id = count
     this.dieType = dieType
     this.mesh = null
     this._result = null
     this.asleep = false
     this.theme = theme
-    this.enableShadows = enableShadows
     this.comboKey = `${dieType}_${theme}`
-    this.setTimeout = null
-    this.createInstance()
+    this.createInstance({lights: sceneLights, enableShadows})
   }
 
-  // TODO: this does not have to be on every die. Make it static?
+	get result() {
+    return this._result
+  }
+
+  set result(val) {
+    this._result = val
+  }
+
+	static resetCount(){
+		count = 0
+	}
+
   createInstance(options) {
+		const {lights = [], enableShadows = false} = options
     // create die instance
     const dieInstance = diceCombos[this.comboKey].createInstance(`${this.dieType}-instance-${count}`)
 
     meshes[this.dieType].getChildTransformNodes().map(child => {
       const locator = child.clone(child.id)
-      // console.log(`child.position`, child.position)
       locator.setAbsolutePosition(child.getAbsolutePosition())
-      // console.log(`locator.getAbsolutePosition()`, locator.getAbsolutePosition())
       dieInstance.addChild(locator)
     })
-    if(this.enableShadows){
+		
+		//TODO: die is loading in the middle of the screen. flashes before animation starts
+		// hide the die, reveal when it's ready to toss or after first update from physics
+    if(enableShadows){
       for (const key in lights) {
         if(key !== 'hemispheric' ) {
           lights[key].shadowGenerator.addShadowCaster(dieInstance)
@@ -46,44 +54,11 @@ class Dice {
       }
     }
 
-    // // drop in collider for this instance
-    // meshes[this.dieType].collider.setParent(dieInstance)
-
-    // dieInstance.physicsImpostor = new PhysicsImpostor(dieInstance, PhysicsImpostor.NoImpostor, dicePhysicalProperties[this.dieType])
-    // dieInstance.physicsImpostor.physicsBody.setSleepingThresholds(.01, .01)
-    // // check the dice speed on each frame - don't forget to unregister
-    // dieInstance.physicsImpostor.registerAfterPhysicsStep(Dice.isAsleep.bind(this))
-
     // attach the instance to the class object
     this.mesh = dieInstance
 
-    // // return the collider for re-instancing
-    // meshes[this.dieType].collider.setParent(null)
-
-    // if(options.dieType === 'd100') {
-    //   console.log("attach a d10")
-    //   this.d10Instance = this.createInstance({dieType:'d10'})
-    // }
-
-    console.log(`count`, count)
+    // console.log(`count`, count)
     count++
-  }
-
-  get result() {
-    return this._result
-  }
-
-  set result(val) {
-    this._result = val
-    this.resultListener(val)
-  }
-
-  resultListener(val) {
-    // console.log("no active listener function")
-  }
-
-  registerNewListener(externalListenerFunction) {
-    this.resultListener = externalListenerFunction
   }
 
   // TODO: add themeOptions for colored materials, must ensure theme and themeOptions are unique somehow
@@ -124,157 +99,25 @@ class Dice {
     // return models
   }
 
-  static rollPromise(die) {
-
-    const mesh = die.mesh
-    const impostor = mesh.physicsImpostor
-    const scene = mesh.getScene()
-    const diceBox = scene.getNodeByID('ground')
-    const position = new Vector3(0,8,0)
-    const bounds = diceBox.getBoundingInfo().boundingBox
-
-    // if(die.dieType === 'd100') {
-    //   die.d10Instance = Dice.loadModel({dieType:'d10',theme:die.theme})
-    //     .then(response => new Dice(response, lights, die.enableShadows))
-    //     .then(die => {
-    //       // save this additional die - will need it to check if all dice are asleep later
-    //       scene.dieCache.push(die)
-    //       return Dice.rollPromise(die)
-    //     })
-    //     .then(res => res)
-    // }
-
-    die.result = null
-    die.asleep = false
-
-    mesh.position = position
-    mesh.addRotation(
-      Math.random() * Math.PI * 2,
-      Math.random() * Math.PI * 2,
-      Math.random() * Math.PI * 2
-    )
-
-    // can throw target just be clientWidth and clientHeight?
-    const throwTarget = new Vector3(
-      lerp(bounds.minimumWorld.x, bounds.maximumWorld.x, Math.random()),
-      5,
-      lerp(bounds.minimumWorld.z, bounds.maximumWorld.z, Math.random())
-    );
-
-    const impulse = new Vector3(0, 0, 0)
-      .subtract(throwTarget)
-      .normalizeToNew()
-      .scale(lerp(300, 800, Math.random()))
-
-    // This might affect re-rolling
-    impostor.disableBidirectionalTransformation = true
-
-    // remove any velocity the die might still have
-    impostor.setLinearVelocity(Vector3.Zero())
-    impostor.setAngularVelocity(Vector3.Zero())
-
-    impostor.applyImpulse(
-      impulse,
-      impostor.getObjectCenter()
-    )
-    
-    return new Promise((resolve,reject) => {
-      // return the promise when we have a result value
-      return die.registerNewListener(val => resolve(val))
-    })
-  }
-
   static async getRollResult(die) {
     const getDieRoll = (d=die) => new Promise((resolve,reject) => {
     // const getDieRoll = (d = die) => {
       let highestDot = -1
       let highestLocator
       for (let locator of d.mesh.getChildTransformNodes()) {
-        // I don't think I need this.
-        // let dif = locator
-        //   .getAbsolutePosition()
-        //   .subtract(die.mesh.getAbsolutePosition())
-        // let direction = dif.normalize()
-        // const dot = Vector3.Dot(direction, Vector3.Up())
-        // console.log(`${locator.id}:`, locator)
-        // console.log(`${locator.id}:`, locator.position.x,locator.position.y,locator.position.z)
-
-        // const dot = Vector3.Dot(locator.getAbsolutePosition(), Vector3.Up())
         const dot = locator.up.y
-        // const dot = locator.position.z
         if (dot > highestDot) {
           highestDot = dot
           highestLocator = locator
         }
       }
-      
-      // const vector = new Vector3(0, 1, 0)
-      // const pickResult = worldScene.pickWithRay(new Ray(d.mesh.position, vector, 5))
 
       // locators may have crazy names after being instanced, but they all end in '_##' for the face they are on
-      return resolve(parseInt(highestLocator.name.slice(highestLocator.name.lastIndexOf('_')+1)))
+			const result = parseInt(highestLocator.name.slice(highestLocator.name.lastIndexOf('_')+1))
+			die.result = result
+      return resolve(result)
     })
-
-    let number
-
-    // If the dice is a d100 add the d10
-    // if(die.dieType === 'd100') {
-    //   const d100Result = await getDieRoll()
-    //   const d10Result = await getDieRoll(die.d10Instance)
-    //   if (d10Result === 0 && d100Result === 0) {
-    //     number = 100;
-    //   } else {
-    //     number = d100Result + d10Result
-    //   }
-    // } else {
-    //   number = await getDieRoll()
-    // }
-
-    // console.log("result", number)
     return await getDieRoll()
-
-    return number
-
-  }
-
-  static isAsleep() {
-    const die = this
-    if(die.asleep) {
-      return
-    }
-    const impostor = die.mesh.physicsImpostor
-// ___________________________STATE
-//  1  : ACTIVE
-//  2  : ISLAND_SLEEPING
-//  3  : WANTS_DEACTIVATION
-//  4  : DISABLE_DEACTIVATION
-//  5  : DISABLE_SIMULATION
-
-// ___________________________FLAG
-//  0  : RIGIDBODY
-//  1  : STATIC_OBJECT
-//  2  : KINEMATIC_OBJECT
-//  4  : NO_CONTACT_RESPONSE
-//  8  : CUSTOM_MATERIAL_CALLBACK
-//  16 : CHARACTER_OBJECT
-//  32 : DISABLE_VISUALIZE_OBJECT
-//  64 : DISABLE_SPU_COLLISION_PROCESSING
-
-
-    const speed = impostor.getLinearVelocity().length()
-
-    if(speed < .01 && !die.sleepTimeout) {
-      // TODO: perhaps clear/reset timeout if die takes a collision that re-accelerates it
-      die.sleepTimeout = setTimeout(()=>{
-        die.asleep = true
-        die.result = Dice.getRollResult(die)
-      }, 500)
-      impostor.physicsBody.setMassProps(0)
-      impostor.physicsBody.forceActivationState(3)
-      // zero out anything left
-      impostor.setLinearVelocity(Vector3.Zero())
-      impostor.setAngularVelocity(Vector3.Zero())
-    }
   }
 }
 
