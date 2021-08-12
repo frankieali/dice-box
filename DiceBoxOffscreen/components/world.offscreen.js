@@ -1,9 +1,9 @@
-import { createEngine } from './components/engine'
-import { createScene } from './components/scene'
-import { createCamera } from './components/camera'
-import { createDiceBox } from './components/diceBox'
-import { createLights } from './components/lights'
-import Dice from './components/Dice'
+import { createEngine } from './engine'
+import { createScene } from './scene'
+import { createCamera } from './camera'
+import { createDiceBox } from './diceBox'
+import { createLights } from './lights'
+import Dice from './Dice'
 
 let canvas, config, engine, scene, camera, lights, physicsWorkerPort, dieCache = [], sleeperCache = [], count = 0
 
@@ -46,7 +46,15 @@ self.onmessage = (e) => {
     case "resize":
       canvas.width = e.data.width
       canvas.height = e.data.height
+			// redraw the dicebox
+			createDiceBox({
+				...config,
+				size: 25,
+				aspect: canvas.width / canvas.height,
+				lights,
+			})
       engine.resize()
+			
       break
     case "init":
       // console.log("time to init")
@@ -84,8 +92,8 @@ self.onmessage = (e) => {
                 // if one of the pair is asleep and the other isn't then it falls through without getting the roll result
                 // otherwise both dice in the d100 are asleep and ready to calc their roll result
                 if(sleeper?.d10Instance?.asleep || sleeper?.dieParent?.asleep) {
-                  const d100 = sleeper.dieType === 'd100' ? sleeper : sleeper.dieParent
-                  const d10 = sleeper.dieType === 'd10' ? sleeper : sleeper.d10Instance
+                  const d100 = sleeper.sides === 100 ? sleeper : sleeper.dieParent
+                  const d10 = sleeper.sides === 10 ? sleeper : sleeper.d10Instance
                   const d100Result = await Dice.getRollResult(d100)
                   const d10Result = await Dice.getRollResult(d10)
                   if (d10Result === 0 && d100Result === 0) {
@@ -101,8 +109,12 @@ self.onmessage = (e) => {
 									}})
                 }
               } else {
-                // console.log(`${sleeper.dieType} result:`, result)
+                // console.log(`${sleeper.sides} result:`, result)
 								// console.log(`sleeper`, sleeper)
+								// turn 0's on a d10 into a 10
+								if(sleeper.sides === 10 && sleeper.result === 0) {
+									sleeper.result = 10
+								}
 								self.postMessage({action:"roll-result", die: {
 									rollId: sleeper.rollId,
 									groupId: sleeper.groupId,
@@ -139,11 +151,11 @@ const initScene = async () => {
   // the dieCache order must match the physicsWorker's colliders order so the positioning data matches up
   dieCache = [] // cache dice that are rolling
   sleeperCache = [] // cache dice that have stopped rolling
-
+console.log(`config`, config)
   // create the box that provides surfaces for shadows to render on
   createDiceBox({
     ...config,
-    size: 35,
+    size: 25,
     aspect: canvas.width / canvas.height,
     lights,
   })
@@ -198,10 +210,11 @@ const renderLoop = () => {
 
 // add a die to the scene
 const add = async (options) => {
+	options.dieType = `d${options.sides}`
 	if(engine.activeRenderLoops.length === 0) {
 		render()
 	}
-  // loadDie allows you to specify dieType and theme and returns the options you passed in
+  // loadDie allows you to specify sides(dieType) and theme and returns the options you passed in
   const newDie = await Dice.loadDie(options).then( response =>  {
     // after the die model and textures have loaded we can add the die to the scene for rendering
     return new Dice(response, lights, config.enableShadows)
@@ -218,16 +231,16 @@ const add = async (options) => {
 	// tell the physics engine to roll this die type - which is a low poly collider
 	physicsWorkerPort.postMessage({
 		action: "addDie",
-		die: options.dieType,
+		sides: options.sides,
 		id: newDie.id
 	})
 
   // for d100's we need to add an additional d10 and pair it up with the d100 just created
-  if(options.dieType === 'd100') {
+  if(options.sides === 100) {
     // Should the d10 come a few seconds after the d100 is tossed?
     // setTimeout(async() => {
     // assign the new die to a property on the d100 - spread the options in order to pass a matching theme
-    newDie.d10Instance = await Dice.loadDie({...options, dieType: 'd10'}).then( response =>  {
+    newDie.d10Instance = await Dice.loadDie({...options, sides: 10, dieType: 'd10'}).then( response =>  {
       const d10Instance = new Dice(response, lights, config.enableShadows)
       // identify the parent of this d10 so we can calculate the roll result later
       d10Instance.dieParent = newDie
@@ -237,7 +250,7 @@ const add = async (options) => {
     dieCache.push(newDie.d10Instance)
     physicsWorkerPort.postMessage({
       action: "addDie",
-      die: 'd10',
+      sides: 10,
 			id: newDie.d10Instance.id
     })
   // }, 1000)

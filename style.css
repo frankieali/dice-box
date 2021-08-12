@@ -17,6 +17,8 @@ body {
 
 #scene-container {
   position: relative;
+	background-image: url(./assets/woodgrain2.jpg);
+	background-size: cover;
 }
 
 .inputs {

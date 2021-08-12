@@ -1,4 +1,4 @@
-import { Color3 } from '@babylonjs/core/Maths/math.color'
+import { Color3, Color4 } from '@babylonjs/core/Maths/math.color'
 import { Scene } from '@babylonjs/core/scene'
 import { SceneOptimizer, SceneOptimizerOptions } from '@babylonjs/core/Misc/sceneOptimizer'
 
@@ -12,7 +12,7 @@ async function createScene(options = defaultOptions) {
   const scene = new Scene(engine)
 
   scene.useRightHandedSystem = true
-  scene.clearColor = new Color3(1, 1, 1);
+  scene.clearColor = new Color4(0,0,0,0);
   if(debug) {
     console.log("initializing scene inspector")
     // await import('@babylonjs/loaders/glTF')

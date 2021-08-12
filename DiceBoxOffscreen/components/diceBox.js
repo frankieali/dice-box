@@ -13,22 +13,28 @@ const defaultOptions = {
   enableShadows: true
 }
 
+// cache the walls for resizing
+let diceBox, boxMaterial = null
+
 function createDiceBox(options = defaultOptions) {
 
+	if(diceBox) {
+		diceBox.dispose()
+	}
+
   const { aspect, size, enableDebugging, lights, enableShadows } = options
-  const diceBox = new TransformNode("diceBox");
   const wallHeight = 30
-  let boxMaterial = null
+  diceBox = new TransformNode("diceBox");
 
   if(enableDebugging) {
     boxMaterial = new StandardMaterial("diceBox_material")
-    boxMaterial.alpha = .1
+    boxMaterial.alpha = .7
     boxMaterial.diffuseColor = new Color3(1, 1, 0);
   }
   else {
     if(enableShadows) {
       boxMaterial = new ShadowOnlyMaterial('shadowOnly')
-      boxMaterial.alpha = .1
+      boxMaterial.alpha = .3
       boxMaterial.diffuseColor = new Color3(1, 1, 1)
       boxMaterial.activeLight = lights.directional
     }
@@ -123,4 +129,8 @@ function createDiceBox(options = defaultOptions) {
   return diceBox
 } 
 
-export { createDiceBox }
+function destroyDiceBox() {
+	diceBox.dispose()
+}
+
+export { createDiceBox, destroyDiceBox }

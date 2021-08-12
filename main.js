@@ -21,11 +21,6 @@ const box = new DiceBox('#scene-container', {
   enableShadows: true
 })
 
-
-// const rollParser = new DiceRoller()
-
-// console.log(`box`, box)
-
 /**
  * TODO:
  *  1. DONE consolidate models into a single file to be loaded by webworker up front
@@ -65,66 +60,38 @@ const box = new DiceBox('#scene-container', {
 
 box.initScene()
 .then(()=>{
-  // console.log("initScene must be complete ... adding die")
-  const dice = ['d100','d20','d12','d10','d8','d6','d4']
-  const themes = ['galaxy','gemstone','glass','iron','nebula','sunrise','sunset','walnut']
-  
-  // const diceTest = setInterval(async () => {    
-    // const dieType = dice[Math.floor(Math.random() * dice.length)]
-    const dieType = dice[Math.floor(Math.random() * dice.length)]
-    const theme = themes[Math.floor(Math.random() * themes.length)]
-    // box.add({dieType:dice[Math.floor(Math.random() * dice.length)], theme:themes[Math.floor(Math.random() * themes.length)]})
+  // const dice = ['d100','d20','d12','d10','d8','d6','d4']
+  // const themes = ['galaxy','gemstone','glass','iron','nebula','sunrise','sunset','walnut']
+	// const dieType = dice[Math.floor(Math.random() * dice.length)]
+	// const theme = themes[Math.floor(Math.random() * themes.length)]
+	// box.add({dieType:dice[Math.floor(Math.random() * dice.length)], theme:themes[Math.floor(Math.random() * themes.length)]})
 
-    //TODO: add camera controls
-    //TODO: create roll method
+	//TODO: add camera controls
+	//TODO: create roll method
 
-    // box.add({dieType: 'd20'})
-    // box.add({dieType: 'd12'})
-    // box.add({dieType: 'd10'})
-    // box.add({dieType: 'd8'})
-    // box.add({dieType: 'd6'})
-    // box.add({dieType: 'd4'})
+	// box.add({dieType: 'd20'})
+	// box.add({dieType: 'd12'})
+	// box.add({dieType: 'd10'})
+	// box.add({dieType: 'd8'})
+	// box.add({dieType: 'd6'})
+	// box.add({dieType: 'd4'})
 
-  // const diceTest = setInterval(() => {
-  //   const dieType = dice[Math.floor(Math.random() * dice.length)]
-  //   const theme = themes[Math.floor(Math.random() * themes.length)]
-  //   // box.add({dieType, theme})
-  //   box.add({dieType})
-  //   // .then(res => box.roll(res))
-  // }, 10);
+// const diceTest = setInterval(() => {
+//   const dieType = dice[Math.floor(Math.random() * dice.length)]
+//   const theme = themes[Math.floor(Math.random() * themes.length)]
+//   // box.add({dieType, theme})
+//   box.add({dieType})
+//   // .then(res => box.roll(res))
+// }, 10);
 
-  // setTimeout(()=>{
-  //   clearInterval(diceTest)
-  // }, 1000)
+// setTimeout(()=>{
+//   clearInterval(diceTest)
+// }, 1000)
 })
-
-
-  // DICE FOUNTAIN
-  // const diceFountain = setInterval(async ()=>{
-  //   const dieType = dice[Math.floor(Math.random() * dice.length)]
-  //   const theme = themes[Math.floor(Math.random() * themes.length)]
-  //   await box.add({dieType,theme}).then(die => box.roll(die))
-
-  // },10)
-  
-  // setTimeout(()=>{
-  //   clearInterval(diceFountain)
-  // },10000)
-
-  // poop out 200 random dice
-  // for (let index = 0; index < 20; index++) {
-  //   const dieType = dice[Math.floor(Math.random() * dice.length)]
-  //   // const theme = themes[Math.floor(Math.random() * themes.length)]
-  //   // const newDie = await box.add({dieType, theme}).then(res => box.roll(res))
-  //   setTimeout(async ()=>{
-  //     await box.add({dieType}).then(res => box.roll(res))
-  //   },index*200)
-  // }
-// })
 
 const form = document.getElementById("dice-to-roll")
 const notation = document.getElementById("input--notation")
-const formP = document.getElementById("dice-to-parse")
+// const formP = document.getElementById("dice-to-parse")
 const notationP = document.getElementById("input--notation-parser")
 const clearBtn = document.getElementById("btn--clear")
 let externalIndex = 0
@@ -138,8 +105,8 @@ const findDie = (obj, searchKey = 'die', results = []) => {
 		if(key === searchKey){
 			r.push({
 				groupId: externalIndex++,
-				number: obj.count.value,
-				type: 'd' + obj.die.value,
+				qty: obj.count.value,
+				sides: obj.die.value,
 				mods: obj.mods
 			});
 		} else if(value && typeof value === 'object'){
@@ -163,13 +130,17 @@ const submitForm = (e) => {
 	box.roll(dieGroups)
 }
 
+box.onDieComplete = (result) => {
+	// console.log(`result`, result)
+}
+
 box.onRollComplete = (results) => {
 	console.log("time to parse results", results)
 	let parseFinal = true
 	
 	results.forEach(group => {
 		// check for 'mods' - might need to reroll when encountered
-		if(group.mods.length > 0){
+		if(group.mods?.length > 0){
 			const successTest = (roll, mod, target) => {
 				switch (mod) {
 					case ">":
@@ -182,7 +153,8 @@ box.onRollComplete = (results) => {
 				}
 			}
 			group.mods.forEach(mod => {
-				console.log(`modType`, mod.type)
+				// console.log(`modType`, mod.type)
+				// console.log(`mod`, mod)
 				// TODO: handle each type of mod that would trigger a reroll
 				const rollsCopy = {...group.rolls}
 				switch(mod.type){
@@ -193,15 +165,15 @@ box.onRollComplete = (results) => {
 						//TODO: discovered that there's a bug in "dice-roller-parser" for compounded rolls. May have to switch to my local fork if PR is not accepted
 						
 						Object.entries(rollsCopy).forEach(([key, value]) => {
-							const max = parseInt(value.type.replace('d',''))
+							const max = value.sides
 							const target = mod.target?.value?.value || max
-							if(successTest(value.result, ">", target) && !value[mod.type]) {
-								group.rolls[key][mod.type] = true
+							if(successTest(value.result, ">", target) && !value.modifier) {
+								group.rolls[key].modifier = mod.type
 								parseFinal = false
 								box.reroll({
 									groupId: group.groupId,
 									rollId: key + '.1',
-									type: value.type
+									sides: value.sides
 								})
 							}
 						})
@@ -209,28 +181,59 @@ box.onRollComplete = (results) => {
 					case "penetrate":
 						console.log("need a 'penetrate' reroll")
 						// if die = max then it explodes, but -1 on explode result (calculated by the parser)
+						// ! Turning this into a future feature or option "HackMaster: true" - option for plugin or override
 						// if die is d20 and explodes then it's followed by a d6
 						// if die is d100 and explodes then it's followed by a d20
-						// penetrating dice only explode once
-						break;
-					case "reroll":
-						console.log("need a 'reroll' reroll")
-						
+						// this gets complicated for d100 and d20 rerolls
+						// d20 explode triggers a d6. The parser will parse extra die value as a d20 and not a d6. So the value as float is incorrect. Same for d100. Need to do some extra math. Would want to convert the value here, perhaps with a flag on the reroll
 						Object.entries(rollsCopy).forEach(([key, value]) => {
-							const max = parseInt(value.type.replace('d',''))
-							if(successTest(value.result, mod.target.mod, mod.target.value.value)  && !value.reroll) {
-								group.rolls[key].reroll = true
+							console.log(`mod`, mod)
+							console.log(`mod.target`, mod.target)
+							const max = value.sides
+							const target = mod.target?.value?.value || max
+							const op = mod.target?.mod || '='
+							if(successTest(value.result, op, target) && !value.modifier) {
+								group.rolls[key].modifier = mod.type
 								parseFinal = false
 								box.reroll({
 									groupId: group.groupId,
 									rollId: key + '.1',
-									type: value.type
+									// sides: value.sides === 100 ? 20 : value.sides === 20 ? 6 : value.sides,
+									sides: value.sides,
+								})
+							}
+						})
+						break;
+					case "reroll":
+						console.log("need a 'reroll' reroll")
+						Object.entries(rollsCopy).forEach(([key, value]) => {
+							const max = value.sides
+							if(successTest(value.result, mod.target.mod, mod.target.value.value)  && !value.modifier) {
+								group.rolls[key].modifier = mod.type
+								parseFinal = false
+								box.reroll({
+									groupId: group.groupId,
+									rollId: key + '.1',
+									sides: value.sides
 								})
 							}
 						})
 						break;
 					case "rerollOnce":
 						console.log("need a 'rerollOnce' reroll")
+						Object.entries(rollsCopy).forEach(([key, value]) => {
+							const target = mod.target?.value?.value
+							const op = mod.target.mod
+							if(successTest(value.result, op, target)  && !value.modifier && !key.includes(".")) {
+								group.rolls[key].modifier = mod.type
+								parseFinal = false
+								box.reroll({
+									groupId: group.groupId,
+									rollId: key + '.1',
+									sides: value.sides
+								})
+							}
+						})
 						break;
 				}
 			}) // end mods forEach
@@ -242,7 +245,7 @@ box.onRollComplete = (results) => {
 		const rolls = recursiveSearch(results,'rolls')
 		rolls.forEach(roll => {
 			return Object.entries(roll).forEach(([key, value]) => {
-				const sides = parseInt(value.type.replace('d',''))
+				const sides = value.sides
 				rollsAsFloats.push((value.result - 1)/sides)
 			})
 		})
@@ -256,8 +259,6 @@ box.onRollComplete = (results) => {
 
 		return finalResults
 	}
-
-
 }
 
 // parser test to check the output on various rolls
@@ -280,5 +281,5 @@ const submitFormP = (e) => {
 }
 
 form.addEventListener("submit", submitForm)
-formP.addEventListener("submit", submitFormP)
+// formP.addEventListener("submit", submitFormP)
 clearBtn.addEventListener("click", () => box.clear())

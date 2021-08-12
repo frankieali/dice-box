@@ -1,6 +1,7 @@
 import { createCanvas } from './components/canvas'
-import worldWorker from './WorldOffscreen?worker'
-import diceWorker from './components/Dice/physics.worker?worker'
+import worldWorker from './components/world.offscreen?worker'
+import diceWorker from './components/physics.worker?worker'
+import { debounce } from './helpers'
 
 let canvas, physicsWorker, physicsWorkerInit, offscreen, offscreenWorker, offscreenWorkerInit, delay
 let rollData = {}, rollId = 0
@@ -8,8 +9,33 @@ let rollData = {}, rollId = 0
 const defaultOptions = {
   enableDebugging: false,
   enableShadows: true,
-  delay: 10
+  delay: 10,
+	gravity: 4,
+	startPos: [0,12,0],
+	spinForce: 20,
+	throwForce: 20,
 }
+
+/**
+ * TODO:
+ * feature check offscreen canvas - make world usable as both onscreen and offscreen if possible. Keep it DRY
+ * improve api's for roll, add, reroll
+ * bring in parser package?
+ * consider new api's such as getResults or getRoll to fetch rollData
+ * additional options 
+ * 	- sleeper timeout (in case dice are not settling fast enough)
+ *  - gravity magnifier
+ *  - start position
+ *  - throw force
+ *  - spin force
+ *  - theme
+ *  - other options to affect the 3D scene such as 
+ *  -- light position
+ *  -- additional lights
+ *  -- zoom factor
+ *  -- shadow darkness
+ */
+
 
 class World {
   constructor(container, options = {}){
@@ -45,11 +71,14 @@ class World {
     },[ channel.port2 ])
 
     // send resize events to listeners
-    window.addEventListener("resize", () => {
+		const resizeWorkers = () => {
       offscreenWorker.postMessage({action: "resize", width: canvas.clientWidth, height:canvas.clientHeight});
       physicsWorker.postMessage({action: "resize", width: canvas.clientWidth, height:canvas.clientHeight});
-    })
+		}
+		const debounceResize = debounce(resizeWorkers)
+    window.addEventListener("resize", debounceResize)
 
+		this.onDieComplete = () => {}
 		this.onRollComplete = () => {}
   }
 
@@ -73,9 +102,15 @@ class World {
 				const die = e.data.die
 				// map die results back to our rollData
 				rollData[die.groupId].rolls[die.rollId].result = die.result
+				this.onDieComplete(die) // TODO: die should have 'sides' or is that unnecessary data passed between workers?
 			}
 			if(e.data.action === 'roll-complete') {
-				console.log(`rollData`, rollData)
+
+				// calculate the value of all the rolls added together - not so useful for advanced rolls such as 4d6dl1 (4d6 drop lowest 1)
+				rollData.forEach(rollGroup => {
+					rollGroup.value = Object.values(rollGroup.rolls).reduce((val,roll) => val + roll.result,0)
+				})
+
 				this.onRollComplete(rollData)
 			}
     }
@@ -100,6 +135,9 @@ class World {
 
   }
 
+	// this will add a notation to the current roll
+	// if string then added as a new group
+	// if object then can be added via groupId {groupId, sides, qty}
   add(options) {
     // console.log("add die from main")
 		if (!options.groupId){
@@ -110,8 +148,7 @@ class World {
 		}
 		
 		rollData[options.groupId].rolls[options.rollId] = {
-			groupId: options.groupId,
-			type: options.dieType,
+			...options
 		}
     offscreenWorker.postMessage({
       action: "addDie",
@@ -119,14 +156,18 @@ class World {
     })
   }
 
+	// this will re-roll the last notation pased in
 	reroll(notation) {
 		this.add({
 			...notation,
-			dieType: notation.type
+			sides: notation.sides
 		})
 	}
 
 	// only accepts simple notations such as 2d20
+	// for rolling groups of dice
+	// accepts simple notations eg: 4d6
+	// accepts array of objects as [{sides:int, qty:int, groupId:int, mods:[]}]
   roll(notation) {
     // reset the offscreen worker and physics worker with each new roll
     this.clear()
@@ -136,17 +177,19 @@ class World {
 			// rolling a set of dice such as 4d20
 			// create an object to store this roll with a unique id
 			// { id: UUID, notation: '4d20', rolls: []}
-			console.log(`roll`, roll)
+			// console.log(`roll`, roll)
 			console.log(`rollData`, rollData)
 			rollData[roll.groupId].rolls = {}
-			for (var i = 0, len = roll.number; i < len; i++) {
-				this.add({dieType: roll.type, groupId: roll.groupId})
+			for (var i = 0, len = roll.qty; i < len; i++) {
+				//TODO: do not pipe this though this.add. That is going to be for a different api
+				this.add({sides: roll.sides, groupId: roll.groupId})
 			}
 		}
 
 		if(typeof notation === 'string') {
 			let parsedNotation = this.parse(notation)
-			rollData = parsedNotation
+			let group = rollData.length
+			rollData[group] = parsedNotation
 			rollSet(parsedNotation)
 		}
 
@@ -184,6 +227,14 @@ class World {
     offscreenWorker.postMessage({action: "clearDice"})
   }
 
+	hide() {
+		canvas.style.display = 'none'
+	}
+
+	show() {
+		canvas.style.display = 'block'
+	}
+
   // parse text die notation such as 2d10+3 => {number:2, type:6, modifier:3}
   // TODO: more notation support in the future such as 2d6 + 2d6
   // taken from https://github.com/ChapelR/dice-notation
@@ -219,7 +270,7 @@ class World {
     roll[2] = validNumber(roll[2], msg);
     return {
       number : roll[1],
-      type : `d${roll[2]}`,
+      sides : roll[2],
       modifier : mod
     }
   }

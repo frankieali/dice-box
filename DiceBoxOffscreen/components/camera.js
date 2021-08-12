@@ -9,7 +9,7 @@ async function createCamera(options = defaultOptions) {
   const { debug } = options
   let camera
   const debugCameraDistance = 45
-  const cameraDistance = 65
+  const cameraDistance = 100
   if(debug) {
     console.log("creating debug camera")
     const cameraModule = await import('@babylonjs/core/Cameras/arcRotateCamera')
@@ -20,7 +20,7 @@ async function createCamera(options = defaultOptions) {
   } else {
     const cameraModule = await import('@babylonjs/core/Cameras/targetCamera')
     camera = new cameraModule.TargetCamera("TargetCamera1", new Vector3(0, cameraDistance, 0))
-    camera.fov = .54
+    camera.fov = .25
     camera.minZ = 5
     camera.maxZ = cameraDistance + 1
   }
