@@ -34,9 +34,9 @@ function createDiceBox(options = defaultOptions) {
   else {
     if(enableShadows) {
       boxMaterial = new ShadowOnlyMaterial('shadowOnly')
-      boxMaterial.alpha = .3
-      boxMaterial.diffuseColor = new Color3(1, 1, 1)
-      boxMaterial.activeLight = lights.directional
+      // boxMaterial.alpha = .3
+      // boxMaterial.diffuseColor = new Color3(1, 1, 1)
+      // boxMaterial.activeLight = lights.directional
     }
   }
 
