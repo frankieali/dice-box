@@ -10,8 +10,10 @@ const defaultOptions = {
   size: 6,
   aspect: 300 / 150,
   enableDebugging: false,
-  enableShadows: true
+  enableShadows: true,
+	zoomLevel: 0
 }
+let zoom = [43,37,32,26.5,23,20.5,18,15.75]
 
 // cache the walls for resizing
 let diceBox, boxMaterial = null
@@ -22,8 +24,10 @@ function createDiceBox(options = defaultOptions) {
 		diceBox.dispose()
 	}
 
-  const { aspect, size, enableDebugging, lights, enableShadows } = options
+  const { aspect, zoomLevel, enableDebugging, lights, enableShadows } = options
   const wallHeight = 30
+	const size = zoom[zoomLevel]
+
   diceBox = new TransformNode("diceBox");
 
   if(enableDebugging) {

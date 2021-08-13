@@ -1,7 +1,7 @@
 import * as AmmoJS from "ammo.js/builds/ammo.wasm.js"
 import { lerp } from '../helpers'
 
-const config = {
+const ammoWASM = {
   locateFile: () => '../assets/ammo/ammo.wasm.wasm'
 }
 
@@ -11,7 +11,7 @@ let sleepingBodies = []
 let colliders = {}
 let last = new Date().getTime()
 let physicsWorld
-let size = 40
+// let size = 40
 let width = 50
 let height = 50
 let aspect = 1
@@ -20,11 +20,22 @@ let worldWorkerPort
 let tmpBtTrans
 let runTime = 15000
 let stopLoop = false
-let startPosition = [0,12,0]
-let spinForce = 20
-let throwForce = 20
-let gravity = -9.81 * 4
+// let startPosition = [0,12,0]
+// let spinForce = 20
+// let throwForce = 20
+// let gravity = -9.81 * 4
 let sharedVector3
+let zoom = [43,37,32,26.5,23,20.5,18,15.75]
+
+const defaultOptions = {
+	zoomLevel: 0,
+	startPosition: [0,12,0],
+	spinForce: 20,
+	throwForce: 20,
+	gravity: 4,
+}
+
+let config = {...defaultOptions}
 
 
 // const buffer = new ArrayBuffer(1024 * 1024 * 10) // reserves 10 MB
@@ -38,10 +49,11 @@ self.onmessage = (e) => {
       rollDie(e.data.sides)
       break;
     case "init":
-      width = e.data.width
+			console.log(`init`)
+			width = e.data.width
       height = e.data.height
-      size = 25
       aspect = width / height
+			config = {...config,...e.data.options}
       init().then(()=>{
         // console.log("physics init complete")
         self.postMessage({
@@ -65,7 +77,7 @@ self.onmessage = (e) => {
 			width = e.data.width
 			height = e.data.height
 			aspect = width / height
-			addBoxToWorld()
+			addBoxToWorld(zoom[config.zoomLevel])
 			break
     case "connect":
       // console.log("connecting to port", e.ports[0])
@@ -112,7 +124,7 @@ self.onmessage = (e) => {
 const init = async () => {
 		// console.log("running init")
 
-		Ammo = await new AmmoJS(config)
+		Ammo = await new AmmoJS(ammoWASM)
 
 		tmpBtTrans = new Ammo.btTransform()
 		sharedVector3 = new Ammo.btVector3(0, 0, 0)
@@ -154,7 +166,7 @@ const init = async () => {
 			colliders[model.id] = model
 		})
 
-		const box = addBoxToWorld()
+		const box = addBoxToWorld(zoom[config.zoomLevel])
 
 		// loop()
 
@@ -238,7 +250,7 @@ const createRigidBody = (collisionShape, params) => {
 }
 // cache for box parts so it can be removed after a new one has been made
 let boxParts = []
-const addBoxToWorld = () => {
+const addBoxToWorld = (size) => {
 	const tempParts = []
 	// ground
 	const localInertia = setVector3(0, 0, 0);
@@ -317,10 +329,12 @@ const addDie = (sides, id) => {
 	let cType = `c${sides}`
 	cType = cType.replace('100','10')
 	// clone the collider
+	console.log(`this config`, config)
+	console.log(`config.startPosition`, config.startPosition)
 	const newDie = createRigidBody(colliders[cType].convexHull, {
 		mass: colliders[cType].physicsMass,
 		scaling: colliders[cType].scaling,
-		pos: startPosition,
+		pos: config.startPosition,
 		// quat: colliders[cType].rotationQuaternion,
 	})
 	newDie.id = id
@@ -349,9 +363,9 @@ const rollDie = (die) => {
 	// die.applyImpulse(force, die.getWorldTransform().getOrigin())
 
 	const force = new Ammo.btVector3(
-		lerp(-spinForce, spinForce, Math.random()),
-		lerp(-spinForce, spinForce, Math.random()),
-		lerp(-spinForce, spinForce, Math.random())
+		lerp(-config.spinForce, config.spinForce, Math.random()),
+		lerp(-config.spinForce, config.spinForce, Math.random()),
+		lerp(-config.spinForce, config.spinForce, Math.random())
 	)
 
 	// console.log(`force`, force.x(), force.y(), force.z())
@@ -359,9 +373,9 @@ const rollDie = (die) => {
 	die.applyImpulse(force, setVector3(4,4,4))
 
 	die.setLinearVelocity(setVector3(
-		lerp(-throwForce*aspect, throwForce*aspect, Math.random()),
-		lerp(-throwForce, 0, Math.random()),
-		lerp(-throwForce, throwForce, Math.random())
+		lerp(-config.throwForce*aspect, config.throwForce*aspect, Math.random()),
+		lerp(-config.throwForce, 0, Math.random()),
+		lerp(-config.throwForce, config.throwForce, Math.random())
 	))
 
 }
@@ -378,7 +392,7 @@ const setupPhysicsWorld = () => {
 		solver,
 		collisionConfiguration
 	)
-	World.setGravity(setVector3(0, gravity, 0))
+	World.setGravity(setVector3(0, -9.81 * config.gravity, 0))
 
 	return World
 }

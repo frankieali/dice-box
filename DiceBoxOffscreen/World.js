@@ -11,9 +11,10 @@ const defaultOptions = {
   enableShadows: true,
   delay: 10,
 	gravity: 4,
-	startPos: [0,12,0],
+	startPosition: [0,12,0],
 	spinForce: 20,
 	throwForce: 20,
+	zoomLevel: 4, // 0-7, can we round it out to 9? And reverse it because higher zoom means closer
 }
 
 /**
@@ -119,7 +120,8 @@ class World {
     physicsWorker.postMessage({
       action: "init",
       width: canvas.clientWidth,
-      height:canvas.clientHeight
+      height:canvas.clientHeight,
+			options: this.config
     })
 
     physicsWorker.onmessage = (e) => {

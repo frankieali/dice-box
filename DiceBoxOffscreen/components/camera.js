@@ -4,12 +4,23 @@ const defaultOptions = {
   debug: false
 }
 
+const zoom = [
+	[170,.25],
+	[145,.25],
+	[125,.25],
+	[105,.25],
+	[90,.25],
+	[80,.25],
+	[70,.25],
+	[60,.25],
+]
+
 // this module has dynamically loaded modules so it's been made async
 async function createCamera(options = defaultOptions) {
-  const { debug } = options
+  const { debug, zoomLevel } = options
   let camera
   const debugCameraDistance = 45
-  const cameraDistance = 100
+  const cameraDistance = zoom[zoomLevel][0]
   if(debug) {
     console.log("creating debug camera")
     const cameraModule = await import('@babylonjs/core/Cameras/arcRotateCamera')
@@ -20,7 +31,7 @@ async function createCamera(options = defaultOptions) {
   } else {
     const cameraModule = await import('@babylonjs/core/Cameras/targetCamera')
     camera = new cameraModule.TargetCamera("TargetCamera1", new Vector3(0, cameraDistance, 0))
-    camera.fov = .25
+    camera.fov = zoom[zoomLevel][1]
     camera.minZ = 5
     camera.maxZ = cameraDistance + 1
   }

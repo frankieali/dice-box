@@ -7,6 +7,7 @@ import Dice from './Dice'
 
 let canvas, config, engine, scene, camera, lights, physicsWorkerPort, dieCache = [], sleeperCache = [], count = 0
 
+
 // these are messages sent to this worker from World.js
 self.onmessage = (e) => {
   switch( e.data.action ) {
@@ -49,7 +50,7 @@ self.onmessage = (e) => {
 			// redraw the dicebox
 			createDiceBox({
 				...config,
-				size: 25,
+				zoomLevel: config.zoomLevel,
 				aspect: canvas.width / canvas.height,
 				lights,
 			})
@@ -144,18 +145,18 @@ self.onmessage = (e) => {
 // initialize the babylon scene
 const initScene = async () => {
   scene = await createScene({debug: config.enableDebugging})
-  camera = await createCamera({debug: config.enableDebugging, engine})
+  camera = await createCamera({debug: config.enableDebugging, engine, zoomLevel: config.zoomLevel})
   lights = createLights({enableShadows: config.enableShadows})
 
   // initialize die caches
   // the dieCache order must match the physicsWorker's colliders order so the positioning data matches up
   dieCache = [] // cache dice that are rolling
   sleeperCache = [] // cache dice that have stopped rolling
-console.log(`config`, config)
+
   // create the box that provides surfaces for shadows to render on
   createDiceBox({
     ...config,
-    size: 25,
+    zoomLevel: config.zoomLevel,
     aspect: canvas.width / canvas.height,
     lights,
   })
