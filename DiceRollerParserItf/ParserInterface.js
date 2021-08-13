@@ -6,8 +6,8 @@ class ParserInterface {
 	constructor(options = {}){
 		this.groupIndex = 0,
 		this.rollsAsFloats = []
+		this.dieGroups = []
 		this.parsedNotation = null
-		this.dieGroups = null
 		this.finalResults = null
 
 		this.initParser()
@@ -32,7 +32,16 @@ class ParserInterface {
 		this.parsedNotation = this.rollParser.parse(notation)
 
 		// create a new object of just dice needed for rolling
-		this.dieGroups = this.findDie(this.parsedNotation)
+		const findDie = (obj) => {
+			this.dieGroups.push({
+				groupId: this.groupIndex++,
+				qty: obj.count.value,
+				sides: obj.die.value,
+				mods: obj.mods
+			})
+		}
+
+		this.recursiveSearch(this.parsedNotation, 'die', [], findDie)
 
 		return this.dieGroups
 	}
@@ -46,13 +55,12 @@ class ParserInterface {
 		externalCount = 0
 		this.groupIndex = 0
 		this.rollsAsFloats = []
+		this.dieGroups = []
 		this.parsedNotation = null
-		this.dieGroups = null
 		this.finalResults = null
 	}
 
 	// make this static for use by other systems?
-	// add optional callback argument for searchKey hit that can pull sibling values - combine this with findDie
 	recursiveSearch(obj, searchKey, results = [], callback) {
 		const r = results;
 		Object.keys(obj).forEach(key => {
@@ -60,34 +68,15 @@ class ParserInterface {
 			// if(key === searchKey && typeof value !== 'object'){
 			if(key === searchKey){
 				r.push(value);
-				// if(callback && typeof callback === 'function') {
-				// 	callback(obj)
-				// }
+				if(callback && typeof callback === 'function') {
+					callback(obj)
+				}
 			} else if(value && typeof value === 'object'){
-				this.recursiveSearch(value, searchKey, r);
+				this.recursiveSearch(value, searchKey, r, callback);
 			}
 		});
 		return r;
 	}
-
-	findDie(obj, searchKey = 'die', results = []) {
-		const r = results;
-		Object.keys(obj).forEach((key,i) => {
-			const value = obj[key];
-			// if(key === searchKey && typeof value !== 'object'){
-			if(key === searchKey){
-				r.push({
-					groupId: this.groupIndex++,
-					qty: obj.count.value,
-					sides: obj.die.value,
-					mods: obj.mods
-				});
-			} else if(value && typeof value === 'object'){
-				this.findDie(value, searchKey, r);
-			}
-		});
-		return r;
-	};
 
 	// TODO: this needs to return a object of rolls that need to be rolled again, 
 	handleRerolls(rollResults = []) {
