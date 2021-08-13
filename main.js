@@ -167,7 +167,8 @@ box.onRollComplete = (results) => {
 						Object.entries(rollsCopy).forEach(([key, value]) => {
 							const max = value.sides
 							const target = mod.target?.value?.value || max
-							if(successTest(value.result, ">", target) && !value.modifier) {
+							const op = mod.target?.mod || '>'
+							if(successTest(value.result, op, target) && !value.modifier) {
 								group.rolls[key].modifier = mod.type
 								parseFinal = false
 								box.reroll({
