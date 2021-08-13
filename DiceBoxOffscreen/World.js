@@ -15,27 +15,8 @@ const defaultOptions = {
 	spinForce: 20,
 	throwForce: 20,
 	zoomLevel: 4, // 0-7, can we round it out to 9? And reverse it because higher zoom means closer
+	theme: 'nebula'
 }
-
-/**
- * TODO:
- * feature check offscreen canvas - make world usable as both onscreen and offscreen if possible. Keep it DRY
- * improve api's for roll, add, reroll
- * bring in parser package?
- * consider new api's such as getResults or getRoll to fetch rollData
- * additional options 
- * 	- sleeper timeout (in case dice are not settling fast enough)
- *  - gravity magnifier
- *  - start position
- *  - throw force
- *  - spin force
- *  - theme
- *  - other options to affect the 3D scene such as 
- *  -- light position
- *  -- additional lights
- *  -- zoom factor
- *  -- shadow darkness
- */
 
 
 class World {

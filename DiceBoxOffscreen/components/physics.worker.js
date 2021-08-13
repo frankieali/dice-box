@@ -329,8 +329,6 @@ const addDie = (sides, id) => {
 	let cType = `c${sides}`
 	cType = cType.replace('100','10')
 	// clone the collider
-	console.log(`this config`, config)
-	console.log(`config.startPosition`, config.startPosition)
 	const newDie = createRigidBody(colliders[cType].convexHull, {
 		mass: colliders[cType].physicsMass,
 		scaling: colliders[cType].scaling,

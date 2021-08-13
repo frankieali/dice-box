@@ -7,7 +7,6 @@ import Dice from './Dice'
 
 let canvas, config, engine, scene, camera, lights, physicsWorkerPort, dieCache = [], sleeperCache = [], count = 0
 
-
 // these are messages sent to this worker from World.js
 self.onmessage = (e) => {
   switch( e.data.action ) {
@@ -18,7 +17,6 @@ self.onmessage = (e) => {
       })
       break
     case "addDie":
-      // console.log("time to add die", e.data.options)
 			// space out adding the dice so they don't lump together too much
 			setTimeout(() => {
 				add(e.data.options)
@@ -33,16 +31,13 @@ self.onmessage = (e) => {
 			Dice.resetCount()
 			count = 0
 
+			// step the scene a few frames frame
 			scene.render()
-			// setTimeout(() => {},10)
 			engine.stopRenderLoop()
 
       dieCache = []
       sleeperCache = []
 
-      // start rendering again
-			// TODO: need to step animation loop one frame
-      // render()
       break
     case "resize":
       canvas.width = e.data.width
@@ -60,6 +55,7 @@ self.onmessage = (e) => {
     case "init":
       // console.log("time to init")
       canvas = e.data.canvas
+			// set the config from World
       config = e.data.config
       canvas.width = e.data.width
       canvas.height = e.data.height
@@ -215,6 +211,8 @@ const add = async (options) => {
 	if(engine.activeRenderLoops.length === 0) {
 		render()
 	}
+	// const themes = ['galaxy','gemstone','glass','iron','nebula','sunrise','sunset','walnut']
+	// options.theme = themes[Math.floor(Math.random() * themes.length)]
   // loadDie allows you to specify sides(dieType) and theme and returns the options you passed in
   const newDie = await Dice.loadDie(options).then( response =>  {
     // after the die model and textures have loaded we can add the die to the scene for rendering
