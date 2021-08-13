@@ -12,7 +12,15 @@ const box = new DiceBox('#scene-container', {
 const DRP = new DiceParser()
 
 // intialize our scene
-box.initScene()
+box.initScene().then(()=>{
+	// console.log(`rollit without the parser`)
+	// roll a simple string
+	// box.roll('4d6+3')
+	// roll an array of strings
+	// box.roll(['4d6+3','1d12'])
+	// box.roll([{sides:20,qty:2}])
+	// box.add('4d8')
+})
 
 
 // UI elements
@@ -42,12 +50,12 @@ box.onRollComplete = (results) => {
 	// check for rerolls if they were in the original notation
 	const rerolls = DRP.handleRerolls(results)
 	if(rerolls.length) {
-		rerolls.forEach(roll => box.reroll(roll))
+		rerolls.forEach(roll => box.add(roll,roll.groupId))
 		return
 	}
 
 	// parse the final roll results
-	const finalResults = DRP.parseFinalResults(results)
+	const finalResults = DRP.parsedNotation ? DRP.parseFinalResults(results) : results
 
 	// dispatch an event with the results object for other UI elements to listen for
 	const event = new CustomEvent('resultsAvailable', {detail: finalResults})

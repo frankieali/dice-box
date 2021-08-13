@@ -4,7 +4,6 @@ let externalCount = 0
 
 class ParserInterface {
 	constructor(options = {}){
-		this.groupIndex = 0,
 		this.rollsAsFloats = []
 		this.dieGroups = []
 		this.parsedNotation = null
@@ -34,7 +33,6 @@ class ParserInterface {
 		// create a new object of just dice needed for rolling
 		const findDie = (obj) => {
 			this.dieGroups.push({
-				groupId: this.groupIndex++,
 				qty: obj.count.value,
 				sides: obj.die.value,
 				mods: obj.mods
@@ -53,7 +51,6 @@ class ParserInterface {
 
 	clear(){
 		externalCount = 0
-		this.groupIndex = 0
 		this.rollsAsFloats = []
 		this.dieGroups = []
 		this.parsedNotation = null
@@ -81,7 +78,7 @@ class ParserInterface {
 	// TODO: this needs to return a object of rolls that need to be rolled again, 
 	handleRerolls(rollResults = []) {
 		const rerolls = []
-		rollResults.forEach(group => {
+		rollResults.forEach((group, groupId) => {
 			// check for 'mods' - might need to reroll when encountered
 			if(group.mods?.length > 0){
 				const successTest = (roll, mod, target) => {
@@ -114,9 +111,10 @@ class ParserInterface {
 								if(successTest(value.result, op, target) && !value.modifier) {
 									group.rolls[key].modifier = mod.type
 									rerolls.push({
-										groupId: group.groupId,
+										groupId,
 										rollId: key + '.1',
-										sides: value.sides
+										sides: value.sides,
+										qty: 1
 									})
 								}
 							})
@@ -138,10 +136,11 @@ class ParserInterface {
 								if(successTest(value.result, op, target) && !value.modifier) {
 									group.rolls[key].modifier = mod.type
 									rerolls.push({
-										groupId: group.groupId,
+										groupId,
 										rollId: key + '.1',
 										// sides: value.sides === 100 ? 20 : value.sides === 20 ? 6 : value.sides,
 										sides: value.sides,
+										qty: 1
 									})
 								}
 							})
@@ -153,9 +152,10 @@ class ParserInterface {
 								if(successTest(value.result, mod.target.mod, mod.target.value.value)  && !value.modifier) {
 									group.rolls[key].modifier = mod.type
 									rerolls.push({
-										groupId: group.groupId,
+										groupId,
 										rollId: key + '.1',
-										sides: value.sides
+										sides: value.sides,
+										qty: 1
 									})
 								}
 							})
@@ -168,9 +168,10 @@ class ParserInterface {
 								if(successTest(value.result, op, target)  && !value.modifier && !key.includes(".")) {
 									group.rolls[key].modifier = mod.type
 									rerolls.push({
-										groupId: group.groupId,
+										groupId,
 										rollId: key + '.1',
-										sides: value.sides
+										sides: value.sides,
+										qty: 1
 									})
 								}
 							})

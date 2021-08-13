@@ -3,8 +3,8 @@ import worldWorker from './components/world.offscreen?worker'
 import diceWorker from './components/physics.worker?worker'
 import { debounce } from './helpers'
 
-let canvas, physicsWorker, physicsWorkerInit, offscreen, offscreenWorker, offscreenWorkerInit, delay
-let rollData = {}, rollId = 0
+// private variables
+let canvas, physicsWorker, physicsWorkerInit, offscreen, offscreenWorker, offscreenWorkerInit, groupIndex, rollIndex
 
 const defaultOptions = {
   enableDebugging: false,
@@ -18,7 +18,6 @@ const defaultOptions = {
 	theme: 'nebula'
 }
 
-
 class World {
   constructor(container, options = {}){
     canvas = createCanvas({
@@ -26,8 +25,14 @@ class World {
       id: 'dice-canvas'
     })
     this.config = {...defaultOptions, ...options}
+		this.rollData = []
+		this.onDieComplete = () => {}
+		this.onRollComplete = () => {}
 
+		// transfer controll offscreen
     offscreen = canvas.transferControlToOffscreen()
+
+		// initialize 3D World in which BabylonJS runs
     offscreenWorker = new worldWorker()
     // need to initialize the web worker and get confirmation that initialization is complete before other scripts can run
     // set a property on the worker to a promise that is resolve when the proper message is returned from the worker
@@ -35,6 +40,7 @@ class World {
       offscreenWorkerInit = resolve
     })
 
+		// initialize physics world in which AmmoJS runs
     physicsWorker = new diceWorker()
     physicsWorker.init = new Promise((resolve, reject) => {
       physicsWorkerInit = resolve
@@ -52,16 +58,13 @@ class World {
       action : "connect",
     },[ channel.port2 ])
 
-    // send resize events to listeners
+    // send resize events to workers - debounced for performance
 		const resizeWorkers = () => {
       offscreenWorker.postMessage({action: "resize", width: canvas.clientWidth, height:canvas.clientHeight});
       physicsWorker.postMessage({action: "resize", width: canvas.clientWidth, height:canvas.clientHeight});
 		}
 		const debounceResize = debounce(resizeWorkers)
     window.addEventListener("resize", debounceResize)
-
-		this.onDieComplete = () => {}
-		this.onRollComplete = () => {}
   }
 
   async initScene(options = {}) {
@@ -74,30 +77,31 @@ class World {
       config: {...this.config, options}
     }, [offscreen])
 
+		// handle messages from offscreen BabylonJS World
     offscreenWorker.onmessage = (e) => {
-      // case: "init-complete" => fulfill promise so other things can run
-      if(e.data.action === "init-complete") {
-        // console.log("received worldOffscreenWorker message: init-complete")
-        offscreenWorkerInit()
-      }
-			if(e.data.action === 'roll-result') {
-				const die = e.data.die
-				// map die results back to our rollData
-				rollData[die.groupId].rolls[die.rollId].result = die.result
-				this.onDieComplete(die) // TODO: die should have 'sides' or is that unnecessary data passed between workers?
-			}
-			if(e.data.action === 'roll-complete') {
-
-				// calculate the value of all the rolls added together - not so useful for advanced rolls such as 4d6dl1 (4d6 drop lowest 1)
-				rollData.forEach(rollGroup => {
-					rollGroup.value = Object.values(rollGroup.rolls).reduce((val,roll) => val + roll.result,0)
-				})
-
-				this.onRollComplete(rollData)
+			switch( e.data.action ) {
+				case "init-complete":
+					offscreenWorkerInit() //fulfill promise so other things can run
+					break;
+				case 'roll-result':
+					const die = e.data.die
+					// map die results back to our rollData
+					this.rollData[die.groupId].rolls[die.rollId].result = die.result
+					// TODO: die should have 'sides' or is that unnecessary data passed between workers?
+					this.onDieComplete(die)
+					break;
+				case 'roll-complete':
+					// calculate the value of all the rolls added together - advanced rolls such as 4d6dl1 (4d6 drop lowest 1) will require an external parser
+					this.rollData.forEach(rollGroup => {
+						rollGroup.value = Object.values(rollGroup.rolls).reduce((val,roll) => val + roll.result,0)
+						rollGroup.value += rollGroup.modifier ? rollGroup.modifier : 0
+					})
+					this.onRollComplete(this.rollData)
+					break;
 			}
     }
 
-    // initialize the ammojs physics worker
+    // initialize the AmmoJS physics worker
     physicsWorker.postMessage({
       action: "init",
       width: canvas.clientWidth,
@@ -106,11 +110,10 @@ class World {
     })
 
     physicsWorker.onmessage = (e) => {
-      // case: "init-complete" => fulfill promise so other things can run
-      if(e.data.action === "init-complete") {
-        // console.log("received physicsWorker message: init-complete")
-        physicsWorkerInit()
-      }
+			switch( e.data.action ) {
+				case "init-complete":
+					physicsWorkerInit() // fulfill promise so other things can run
+			}
     }
 
     // pomise.all to initialize both offscreenWorker and physicsWorker
@@ -118,96 +121,15 @@ class World {
 
   }
 
-	// this will add a notation to the current roll
-	// if string then added as a new group
-	// if object then can be added via groupId {groupId, sides, qty}
-  add(options) {
-    // console.log("add die from main")
-		if (!options.groupId){
-			options.groupId = 0
-		}
-		if(!options.rollId) {
-			options.rollId = rollId++
-		}
-		
-		rollData[options.groupId].rolls[options.rollId] = {
-			...options
-		}
-    offscreenWorker.postMessage({
-      action: "addDie",
-      options
-    })
-  }
-
-	// this will re-roll the last notation pased in
-	reroll(notation) {
-		this.add({
-			...notation,
-			sides: notation.sides
-		})
-	}
-
-	// only accepts simple notations such as 2d20
-	// for rolling groups of dice
-	// accepts simple notations eg: 4d6
-	// accepts array of objects as [{sides:int, qty:int, groupId:int, mods:[]}]
-  roll(notation) {
-    // reset the offscreen worker and physics worker with each new roll
-    this.clear()
-		// console.log(`notation`, notation)
-
-		const rollSet = (roll) => {
-			// rolling a set of dice such as 4d20
-			// create an object to store this roll with a unique id
-			// { id: UUID, notation: '4d20', rolls: []}
-			// console.log(`roll`, roll)
-			console.log(`rollData`, rollData)
-			rollData[roll.groupId].rolls = {}
-			for (var i = 0, len = roll.qty; i < len; i++) {
-				//TODO: do not pipe this though this.add. That is going to be for a different api
-				this.add({sides: roll.sides, groupId: roll.groupId})
-			}
-		}
-
-		if(typeof notation === 'string') {
-			let parsedNotation = this.parse(notation)
-			let group = rollData.length
-			rollData[group] = parsedNotation
-			rollSet(parsedNotation)
-		}
-
-		// if(notation.constructor === Object) {
-		// 	rollData.push(roll)
-		// 	rollSet(roll)
-		// }
-
-		// TODO: using .push will create object reference and mutate original notation values. Good thing?
-		if(Array.isArray(notation)) {
-			// rolling each group
-			notation.forEach(roll => {
-				if(typeof roll === 'string') {
-					let parsedNotation = this.parse(roll)
-					rollData.push(parsedNotation)
-					rollSet(parsedNotation)
-				}
-				else {
-					// console.log(`roll`, roll)
-					rollData.push(roll)
-					rollSet(roll)
-				}
-			})
-		}
-
-  }
-
-  clear() {
-		// reset the rollId and rollData
-		rollId = 0
-		rollData = []
-    // clear all physics die bodies
-    physicsWorker.postMessage({action: "clearDice"})
+	clear() {
+		// reset indexes and rollData
+		rollIndex = 0
+		groupIndex = 0
+		this.rollData = []
     // clear all rendered die bodies
     offscreenWorker.postMessage({action: "clearDice"})
+    // clear all physics die bodies
+    physicsWorker.postMessage({action: "clearDice"})
   }
 
 	hide() {
@@ -218,8 +140,99 @@ class World {
 		canvas.style.display = 'block'
 	}
 
+	// add a die to another group. groupId is required
+  add(notation, groupId = 0) {
+		let parsedNotation = this.createNotationArray(notation)
+		this.makeRoll(parsedNotation, groupId)
+  }
+
+	reroll(notation) {
+		// TODO: this should find a die by groupId and rollId, remove it (from workers and rollData), roll it again
+
+	}
+
+  roll(notation) {
+		// to add to a roll on screen use .add method
+    // reset the offscreen worker and physics worker with each new roll
+    this.clear()
+		let parsedNotation = this.createNotationArray(notation)
+		this.makeRoll(parsedNotation)
+  }
+
+	makeRoll(parsedNotation, groupId){
+		const hasGroupId = groupId !== undefined
+		const index = hasGroupId ? groupId : groupIndex
+
+		const rolls = {}
+		// loop through the number of dice in the group and roll each one
+		parsedNotation.forEach(notation => {
+			// console.log(`notation`, notation)
+			for (var i = 0, len = notation.qty; i < len; i++) {
+				let rollId = rollIndex
+				if(notation.rollId !== undefined){
+					rollId = notation.rollId
+				} else {
+					rollIndex++
+				}
+
+				const roll = {
+					sides: notation.sides,
+					groupId: index,
+					rollId
+				}
+	
+				rolls[rollId] = roll
+	
+				offscreenWorker.postMessage({
+					action: "addDie",
+					options: roll
+				})
+				
+			}
+	
+			if(hasGroupId) {
+				Object.assign(this.rollData[groupId].rolls, rolls)
+			} else {
+				// save this roll group for later
+				notation.rolls = rolls
+				this.rollData[index] = notation
+				groupIndex++
+			}
+		})
+	}
+
+	// accepts simple notations eg: 4d6
+	// accepts array of notations eg: ['4d6','2d10']
+	// accepts array of objects eg: [{sides:int, qty:int, mods:[]}]
+	// accepts object {sides:int, qty:int}
+	createNotationArray(notation){
+		let parsedNotation = []
+
+		if(typeof notation === 'string') {
+			parsedNotation.push(this.parse(notation))
+		}
+
+		// notation is an array of strings or objects
+		if(Array.isArray(notation)) {
+			notation.forEach(roll => {
+				// if notation is an array of strings
+				if(typeof roll === 'string') {
+					parsedNotation.push(this.parse(notation))
+				}
+				else {
+					// TODO: ensure that there is a 'sides' and 'qty' value on the object - required for making a roll
+					parsedNotation.push(roll)
+				}
+			})
+		} else if(typeof notation === 'object'){
+			// TODO: ensure that there is a 'sides' and 'qty' value on the object - required for making a roll
+			parsedNotation.push(notation)
+		}
+
+		return parsedNotation
+	}
+
   // parse text die notation such as 2d10+3 => {number:2, type:6, modifier:3}
-  // TODO: more notation support in the future such as 2d6 + 2d6
   // taken from https://github.com/ChapelR/dice-notation
   parse(notation) {
     const diceNotation = /(\d+)[dD](\d+)(.*)$/i
@@ -252,9 +265,9 @@ class World {
     roll[1] = validNumber(roll[1], msg);
     roll[2] = validNumber(roll[2], msg);
     return {
-      number : roll[1],
+      qty : roll[1],
       sides : roll[2],
-      modifier : mod
+      modifier : mod,
     }
   }
 }
