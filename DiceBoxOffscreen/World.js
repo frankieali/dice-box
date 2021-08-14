@@ -146,9 +146,16 @@ class World {
 		this.makeRoll(parsedNotation, groupId)
   }
 
-	reroll(notation) {
+	reroll(groupId, rollId, hide = false) {
 		// TODO: this should find a die by groupId and rollId, remove it (from workers and rollData), roll it again
+		// call this.remove then call this.add
 
+	}
+
+	remove(groupId, rollId, hide = false) {
+		// this will remove a roll from workers and rolldata
+		// hide if you want to keep the die result for an external parser
+		// returns notation that was removed
 	}
 
   roll(notation) {
