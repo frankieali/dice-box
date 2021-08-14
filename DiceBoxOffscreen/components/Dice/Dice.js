@@ -37,6 +37,8 @@ class Dice {
 		const {lights = [], enableShadows = false} = options
     // create die instance
     const dieInstance = diceCombos[this.comboKey].createInstance(`${this.dieType}-instance-${count}`)
+		// start the instance under the floor, out of camera view
+		dieInstance.position.y = -100
 
     meshes[this.dieType].getChildTransformNodes().map(child => {
       const locator = child.clone(child.id)

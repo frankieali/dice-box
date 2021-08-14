@@ -26,6 +26,7 @@ let stopLoop = false
 // let gravity = -9.81 * 4
 let sharedVector3
 let zoom = [43,37,32,26.5,23,20.5,18,15.75]
+let forces = {}
 
 const defaultOptions = {
 	zoomLevel: 0,
@@ -33,6 +34,7 @@ const defaultOptions = {
 	spinForce: 20,
 	throwForce: 20,
 	gravity: 4,
+	// TODO: toss: "center", "edge", "allEdges"
 }
 
 let config = {...defaultOptions}
@@ -49,7 +51,7 @@ self.onmessage = (e) => {
       rollDie(e.data.sides)
       break;
     case "init":
-			console.log(`init`)
+			// console.log(`init`)
 			width = e.data.width
       height = e.data.height
       aspect = width / height
@@ -86,6 +88,8 @@ self.onmessage = (e) => {
         // console.log(`e`, e)
         switch (e.data.action) {
           case "addDie":
+						// toss from all edges
+						// setStartPosition()
             addDie(e.data.sides, e.data.id)
             break;
           case "rollDie":
@@ -94,9 +98,11 @@ self.onmessage = (e) => {
             break;
           case "stopSimulation":
             stopLoop = true
+						
             break;
           case "resumeSimulation":
             stopLoop = false
+						setStartPosition()
 						loop()
             break;
           default:
@@ -128,6 +134,8 @@ const init = async () => {
 
 		tmpBtTrans = new Ammo.btTransform()
 		sharedVector3 = new Ammo.btVector3(0, 0, 0)
+
+		setStartPosition()
 		
 		// load our collider data
 		// perhaps we don't await this, let it run and resolve it later
@@ -177,6 +185,36 @@ const setVector3 = (x,y,z) => {
 	return sharedVector3
 }
 
+const setStartPosition = () => {
+	let size = zoom[config.zoomLevel]
+	let envelopeSize = size * .6 / 2
+	let xEnvelope = lerp(envelopeSize * aspect, -envelopeSize * aspect, Math.random())
+	let yEnvelope = lerp(envelopeSize, -envelopeSize, Math.random())
+	let tossFromTop = Math.round(Math.random())
+	let tossFromLeft = Math.round(Math.random())
+	let tossX = Math.round(Math.random())
+	// console.log(`throw coming from`, tossX ? tossFromTop ? "top" : "bottom" : tossFromLeft ? "left" : "right")
+
+	forces = {
+		xMinForce: tossX ? -config.throwForce * aspect : tossFromLeft ? config.throwForce * aspect * .3 : -config.throwForce * aspect * .3,
+		xMaxForce: tossX ? config.throwForce * aspect : tossFromLeft ? config.throwForce * aspect * 1 : -config.throwForce * aspect * 1,
+		zMinForce: tossX ? tossFromTop ? config.throwForce * .3 : -config.throwForce * .3 : -config.throwForce,
+		zMaxForce: tossX ? tossFromTop ? config.throwForce * 1 : -config.throwForce * 1 : config.throwForce,
+	}
+	// console.log(`forces`, forces)
+
+	config.startPosition = [
+		// tossing on x axis then z should be locked to top or bottom
+		// not tossing on x axis then x should be locked to the left or right
+		tossX ? xEnvelope : tossFromLeft ? (-size/2 * aspect) + 1 : (size/2 * aspect) - 1,
+		config.startPosition[1],
+		tossX ? tossFromTop ? (-size/2) + 1 : (size/2) - 1 : yEnvelope
+	]
+	
+	// startPosition = [xEnvelope, startPosition[1], yEnvelope]
+	// console.log(`startPosition`, config.startPosition)
+}
+
 const createConvexHull = (mesh) => {
 	const convexMesh = new Ammo.btConvexHullShape()
 
@@ -208,8 +246,8 @@ const createRigidBody = (collisionShape, params) => {
 			-1
 		],
 		scale = [1,1,1],
-		friction = .9,
-		restitution = .4
+		friction = .8,
+		restitution = 0
 	} = params
 
 	// apply position and rotation
@@ -262,7 +300,7 @@ const addBoxToWorld = (size) => {
 	const groundInfo = new Ammo.btRigidBodyConstructionInfo(0, groundMotionState, groundShape, localInertia)
 	const groundBody = new Ammo.btRigidBody(groundInfo)
 	groundBody.setFriction(1)
-	groundBody.setRestitution(0.3)
+	groundBody.setRestitution(0)
 	physicsWorld.addRigidBody(groundBody)
 	tempParts.push(groundBody)
 
@@ -274,7 +312,7 @@ const addBoxToWorld = (size) => {
 	const topInfo = new Ammo.btRigidBodyConstructionInfo(0, topMotionState, wallTopShape, localInertia)
 	const topBody = new Ammo.btRigidBody(topInfo)
 	topBody.setFriction(1)
-	topBody.setRestitution(0.3)
+	topBody.setRestitution(0)
 	physicsWorld.addRigidBody(topBody)
 	tempParts.push(topBody)
 
@@ -286,7 +324,7 @@ const addBoxToWorld = (size) => {
 	const bottomInfo = new Ammo.btRigidBodyConstructionInfo(0, bottomMotionState, wallBottomShape, localInertia)
 	const bottomBody = new Ammo.btRigidBody(bottomInfo)
 	bottomBody.setFriction(1)
-	bottomBody.setRestitution(0.3)
+	bottomBody.setRestitution(0)
 	physicsWorld.addRigidBody(bottomBody)
 	tempParts.push(bottomBody)
 
@@ -298,7 +336,7 @@ const addBoxToWorld = (size) => {
 	const rightInfo = new Ammo.btRigidBodyConstructionInfo(0, rightMotionState, wallRightShape, localInertia)
 	const rightBody = new Ammo.btRigidBody(rightInfo)
 	rightBody.setFriction(1)
-	rightBody.setRestitution(0.3)
+	rightBody.setRestitution(0)
 	physicsWorld.addRigidBody(rightBody)
 	tempParts.push(rightBody)
 
@@ -310,7 +348,7 @@ const addBoxToWorld = (size) => {
 	const leftInfo = new Ammo.btRigidBodyConstructionInfo(0, leftMotionState, wallLeftShape, localInertia)
 	const leftBody = new Ammo.btRigidBody(leftInfo)
 	leftBody.setFriction(1)
-	leftBody.setRestitution(0.3)
+	leftBody.setRestitution(0)
 	physicsWorld.addRigidBody(leftBody)
 	tempParts.push(leftBody)
 
@@ -370,11 +408,18 @@ const rollDie = (die) => {
 	
 	die.applyImpulse(force, setVector3(4,4,4))
 
+	//TODO: given box width and height, set throw point and force randomly around box perimiter
+
 	die.setLinearVelocity(setVector3(
-		lerp(-config.throwForce*aspect, config.throwForce*aspect, Math.random()),
+		lerp(forces.xMinForce, forces.xMaxForce, Math.random()),
 		lerp(-config.throwForce, 0, Math.random()),
-		lerp(-config.throwForce, config.throwForce, Math.random())
+		lerp(forces.zMinForce, forces.zMaxForce, Math.random())
 	))
+	// die.setLinearVelocity(setVector3(
+	// 	lerp(-config.throwForce*aspect, config.throwForce*aspect, Math.random()),
+	// 	lerp(-config.throwForce, 0, Math.random()),
+	// 	lerp(-config.throwForce, config.throwForce, Math.random())
+	// ))
 
 }
 
@@ -402,7 +447,7 @@ const update = (delta) => {
 
 	// step world
 	const deltaTime = delta / 1000
-	physicsWorld.stepSimulation(deltaTime, 1, 1 / 60)
+	physicsWorld.stepSimulation(deltaTime, 1, 1 / 60) // higher number = slow motion
 
 	for (let i = 0, len = bodies.length; i < len; i++) {
 		const rb = bodies[i]

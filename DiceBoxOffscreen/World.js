@@ -10,8 +10,8 @@ const defaultOptions = {
   enableDebugging: false,
   enableShadows: true,
   delay: 10,
-	gravity: 4,
-	startPosition: [0,12,0],
+	gravity: 3,
+	// startPosition: [0,12,0],
 	spinForce: 20,
 	throwForce: 20,
 	zoomLevel: 4, // 0-7, can we round it out to 9? And reverse it because higher zoom means closer
