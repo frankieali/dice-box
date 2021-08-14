@@ -23,45 +23,13 @@ self.onmessage = (e) => {
 			}, count++ * config.delay)
       break
     case "clearDice":
-      // stop anything that's currently rendering
-      engine.stopRenderLoop()
-      // clear all dice
-      dieCache.forEach(die => die.mesh.dispose())
-      sleeperCache.forEach(die => die.mesh.dispose())
-			Dice.resetCount()
-			count = 0
-
-			// step the scene a few frames frame
-			scene.render()
-			engine.stopRenderLoop()
-
-      dieCache = []
-      sleeperCache = []
-
+			clear()
       break
     case "resize":
-      canvas.width = e.data.width
-      canvas.height = e.data.height
-			// redraw the dicebox
-			createDiceBox({
-				...config,
-				zoomLevel: config.zoomLevel,
-				aspect: canvas.width / canvas.height,
-				lights,
-			})
-      engine.resize()
-			
+			resize(e.data)
       break
     case "init":
-      // console.log("time to init")
-      canvas = e.data.canvas
-			// set the config from World
-      config = e.data.config
-      canvas.width = e.data.width
-      canvas.height = e.data.height
-    
-      engine = createEngine(canvas)
-      initScene()
+      initScene(e.data)
       break
     case "connect": // These are messages sent from physics.worker.js
       // console.log("connecting to port", e.ports[0])
@@ -69,62 +37,7 @@ self.onmessage = (e) => {
       physicsWorkerPort.onmessage = (e) => {
         switch (e.data.action) {
           case "updates": // dice status/position updates from physics worker
-					// TODO: time to move this to it's own function
-            // get dice that are sleeping.
-            // console.log(`e.data.updates`, e.data.updates)
-            const asleep = e.data.updates.asleep
-            // loop through all the sleeping dice
-            asleep.reverse().forEach(async (dieIndex,i) => {
-              // remove the sleeping die from the dieCache. It's been removed from the physics simulation and will no longer send position updates in the data array
-              const sleeper = dieCache.splice(dieIndex,1)[0]
-              // mark this die as asleep
-              sleeper.asleep = true
-              // cache all the dice that are asleep
-              sleeperCache.push(sleeper)
-              // get die result now that it's asleep
-              let result = await Dice.getRollResult(sleeper)
-              // special case for d100's since they are a pair of dice
-              // d100's will have a d10Instance prop and the d10 they are paired with will have a dieParent prop
-              if(sleeper.d10Instance || sleeper.dieParent) {
-                // if one of the pair is asleep and the other isn't then it falls through without getting the roll result
-                // otherwise both dice in the d100 are asleep and ready to calc their roll result
-                if(sleeper?.d10Instance?.asleep || sleeper?.dieParent?.asleep) {
-                  const d100 = sleeper.sides === 100 ? sleeper : sleeper.dieParent
-                  const d10 = sleeper.sides === 10 ? sleeper : sleeper.d10Instance
-                  const d100Result = await Dice.getRollResult(d100)
-                  const d10Result = await Dice.getRollResult(d10)
-                  if (d10Result === 0 && d100Result === 0) {
-                    result = 100; // 00 + 0 is 100 on a d100
-                  } else {
-                    result = d100Result + d10Result
-                  }
-                  // console.log(`d100 result:`, result)
-									self.postMessage({action:"roll-result", die: {
-										rollId: d100.rollId,
-										groupId: d100.groupId,
-										result
-									}})
-                }
-              } else {
-                // console.log(`${sleeper.sides} result:`, result)
-								// console.log(`sleeper`, sleeper)
-								// turn 0's on a d10 into a 10
-								if(sleeper.sides === 10 && sleeper.result === 0) {
-									sleeper.result = 10
-								}
-								self.postMessage({action:"roll-result", die: {
-									rollId: sleeper.rollId,
-									groupId: sleeper.groupId,
-									result: sleeper.result
-								}})
-              }
-            })
-
-            // any dice that are not asleep are still moving - pass the remaining physics data to our handler
-            const updates = e.data.updates.movements
-            // apply the dice position updates to the scene meshes
-            handleUpdates(updates)
-
+						updatesFromPhysics(e.data)
             break;
         
           default:
@@ -139,7 +52,15 @@ self.onmessage = (e) => {
 }
 
 // initialize the babylon scene
-const initScene = async () => {
+const initScene = async (data) => {
+	canvas = data.canvas
+
+	// set the config from World
+	config = data.config
+	canvas.width = data.width
+	canvas.height = data.height
+
+	engine = createEngine(canvas)
   scene = await createScene({debug: config.enableDebugging})
   camera = await createCamera({debug: config.enableDebugging, engine, zoomLevel: config.zoomLevel})
   lights = createLights({enableShadows: config.enableShadows})
@@ -177,24 +98,16 @@ const render = () => {
 	})
 }
 
-// const resumeRender = () => {
-// 	render()
-// 	physicsWorkerPort.postMessage({
-// 		action: "resumeSimulation",
-// 	})
-// }
-
 const renderLoop = () => {
-  // TODO: now that we're caching both a dieCache and a sleeperCache, we can probably rework this
-  // are there any dice still awake in the dieCache?
-  // const diceAwake = dieCache?.map(die => die.asleep).includes(false) | false
   // if no dice awake then stop the render loop and save some CPU power (unless we're in debug mode where we want the arc camera to continue working)
   if(sleeperCache.length !== 0 && dieCache.length === 0 && !config.enableDebugging) {
     console.log(`no dice moving`)
     engine.stopRenderLoop()
+		// stop the physics engine
     physicsWorkerPort.postMessage({
       action: "stopSimulation",
     })
+		// post back to the world
 		self.postMessage({
 			action: "roll-complete"
 		})
@@ -203,6 +116,23 @@ const renderLoop = () => {
   else {
     scene.render()
   }
+}
+
+const clear = () => {
+	// stop anything that's currently rendering
+	engine.stopRenderLoop()
+	// clear all dice
+	dieCache.forEach(die => die.mesh.dispose())
+	sleeperCache.forEach(die => die.mesh.dispose())
+	Dice.resetCount()
+	count = 0
+
+	// step the scene a few frames frame
+	scene.render()
+	engine.stopRenderLoop()
+
+	dieCache = []
+	sleeperCache = []
 }
 
 // add a die to the scene
@@ -222,8 +152,6 @@ const add = async (options) => {
 	newDie.rollId = options.rollId
 	newDie.groupId = options.groupId
 
-	// console.log(`newDie`, newDie)
-
   // save the die just created to the cache
   dieCache.push(newDie)
 
@@ -236,8 +164,6 @@ const add = async (options) => {
 
   // for d100's we need to add an additional d10 and pair it up with the d100 just created
   if(options.sides === 100) {
-    // Should the d10 come a few seconds after the d100 is tossed?
-    // setTimeout(async() => {
     // assign the new die to a property on the d100 - spread the options in order to pass a matching theme
     newDie.d10Instance = await Dice.loadDie({...options, sides: 10, dieType: 'd10'}).then( response =>  {
       const d10Instance = new Dice(response, lights, config.enableShadows)
@@ -252,20 +178,71 @@ const add = async (options) => {
       sides: 10,
 			id: newDie.d10Instance.id
     })
-  // }, 1000)
   }
-
-	// console.log(`newDie`, newDie)
 
   // return the die instance
   return newDie
 
 }
 
+const updatesFromPhysics = (data) => {
+	// get dice that are sleeping.
+	// console.log(`data.updates`, data.updates)
+	const asleep = data.updates.asleep
+	// loop through all the sleeping dice
+	asleep.reverse().forEach(async (dieIndex,i) => {
+		// remove the sleeping die from the dieCache. It's been removed from the physics simulation and will no longer send position updates in the data array
+		const sleeper = dieCache.splice(dieIndex,1)[0]
+		// mark this die as asleep
+		sleeper.asleep = true
+		// cache all the dice that are asleep
+		sleeperCache.push(sleeper)
+		// get die result now that it's asleep
+		let result = await Dice.getRollResult(sleeper)
+		// special case for d100's since they are a pair of dice
+		// d100's will have a d10Instance prop and the d10 they are paired with will have a dieParent prop
+		if(sleeper.d10Instance || sleeper.dieParent) {
+			// if one of the pair is asleep and the other isn't then it falls through without getting the roll result
+			// otherwise both dice in the d100 are asleep and ready to calc their roll result
+			if(sleeper?.d10Instance?.asleep || sleeper?.dieParent?.asleep) {
+				const d100 = sleeper.sides === 100 ? sleeper : sleeper.dieParent
+				const d10 = sleeper.sides === 10 ? sleeper : sleeper.d10Instance
+				if (d10.result === 0 && d100.result === 0) {
+					result = 100; // 00 + 0 is 100 on a d100
+				} else {
+					result = d100.result + d10.result
+				}
+				self.postMessage({action:"roll-result", die: {
+					rollId: d100.rollId,
+					groupId: d100.groupId,
+					result
+				}})
+			}
+		} else {
+			// console.log(`${sleeper.sides} result:`, result)
+			// console.log(`sleeper`, sleeper)
+			// turn 0's on a d10 into a 10
+			if(sleeper.sides === 10 && sleeper.result === 0) {
+				sleeper.result = 10
+			}
+			self.postMessage({action:"roll-result", die: {
+				rollId: sleeper.rollId,
+				groupId: sleeper.groupId,
+				result: sleeper.result
+			}})
+		}
+	})
+
+	// any dice that are not asleep are still moving - pass the remaining physics data to our handler
+	const updates = data.updates.movements
+	// apply the dice position updates to the scene meshes
+	handleUpdates(updates)
+}
+
 // handle the position updates from the physics worker. It's a simple flat array of numbers for quick and easy transfer
 const handleUpdates = (updates) => {
   // move through the updates 7 at a time getting position and rotation values
-  const dieCacheLength = dieCache.length
+  // const dieCacheLength = dieCache.length
   for (let i = 0, len = updates.length; i < len; i++) {
     if (!dieCache[i]) break
     let [px,py,pz,qx,qy,qz,qw,id] = updates[i]
@@ -276,4 +253,17 @@ const handleUpdates = (updates) => {
     obj.position.set(px, py, pz)
     obj.rotationQuaternion.set(qx, qy, qz, qw)
   }
+}
+
+const resize = (data) => {
+	canvas.width = data.width
+	canvas.height = data.height
+	// redraw the dicebox
+	createDiceBox({
+		...config,
+		zoomLevel: config.zoomLevel,
+		aspect: canvas.width / canvas.height,
+		lights,
+	})
+	engine.resize()
 }
