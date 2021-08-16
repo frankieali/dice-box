@@ -20,11 +20,12 @@ let diceBox, boxMaterial = null
 
 function createDiceBox(options = defaultOptions) {
 
+	// remove any previously existing boxes
 	if(diceBox) {
 		diceBox.dispose()
 	}
 
-  const { aspect, zoomLevel, enableDebugging, lights, enableShadows } = options
+  const { aspect, zoomLevel, enableDebugging = false, enableShadows } = options
   const wallHeight = 30
 	const size = zoom[zoomLevel]
 

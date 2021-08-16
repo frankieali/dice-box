@@ -7,7 +7,6 @@ import { debounce } from './helpers'
 let canvas, physicsWorker, physicsWorkerInit, offscreen, offscreenWorker, offscreenWorkerInit, groupIndex, rollIndex
 
 const defaultOptions = {
-  enableDebugging: false,
   enableShadows: true,
   delay: 10,
 	gravity: 3,
@@ -73,8 +72,8 @@ class World {
       action: "init",
       canvas: offscreen,
       width: canvas.clientWidth,
-      height:canvas.clientHeight,
-      config: {...this.config, options}
+      height: canvas.clientHeight,
+      options: {...this.config, ...options}
     }, [offscreen])
 
 		// handle messages from offscreen BabylonJS World
@@ -105,7 +104,7 @@ class World {
     physicsWorker.postMessage({
       action: "init",
       width: canvas.clientWidth,
-      height:canvas.clientHeight,
+      height: canvas.clientHeight,
 			options: this.config
     })
 

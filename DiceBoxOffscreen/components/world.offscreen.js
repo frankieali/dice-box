@@ -56,13 +56,13 @@ const initScene = async (data) => {
 	canvas = data.canvas
 
 	// set the config from World
-	config = data.config
+	config = data.options
 	canvas.width = data.width
 	canvas.height = data.height
 
 	engine = createEngine(canvas)
-  scene = await createScene({debug: config.enableDebugging})
-  camera = await createCamera({debug: config.enableDebugging, engine, zoomLevel: config.zoomLevel})
+  scene = await createScene({engine})
+  camera = await createCamera({engine, zoomLevel: config.zoomLevel})
   lights = createLights({enableShadows: config.enableShadows})
 
   // initialize die caches
@@ -100,7 +100,7 @@ const render = () => {
 
 const renderLoop = () => {
   // if no dice awake then stop the render loop and save some CPU power (unless we're in debug mode where we want the arc camera to continue working)
-  if(sleeperCache.length !== 0 && dieCache.length === 0 && !config.enableDebugging) {
+  if(sleeperCache.length !== 0 && dieCache.length === 0) {
     console.log(`no dice moving`)
     engine.stopRenderLoop()
 		// stop the physics engine

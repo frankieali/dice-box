@@ -4,7 +4,6 @@ import DiceParser from './DiceRollerParserItf'
 
 // create DiceBox
 const box = new DiceBox('#scene-container', { 
-  enableDebugging: false,
   enableShadows: true
 })
 

@@ -9,22 +9,15 @@ const ammoWASM = {
 let bodies = []
 let sleepingBodies = []
 let colliders = {}
-let last = new Date().getTime()
 let physicsWorld
-// let size = 40
-let width = 50
-let height = 50
-let aspect = 1
 let Ammo
 let worldWorkerPort
 let tmpBtTrans
-let runTime = 15000
-let stopLoop = false
-// let startPosition = [0,12,0]
-// let spinForce = 20
-// let throwForce = 20
-// let gravity = -9.81 * 4
 let sharedVector3
+let width = 150
+let height = 150
+let aspect = 1
+let stopLoop = false
 let zoom = [43,37,32,26.5,23,20.5,18,15.75]
 let forces = {}
 
@@ -34,14 +27,11 @@ const defaultOptions = {
 	spinForce: 20,
 	throwForce: 20,
 	gravity: 4,
+	// runTime: 15000, // TODO: force dice to sleep after specific time
 	// TODO: toss: "center", "edge", "allEdges"
 }
 
 let config = {...defaultOptions}
-
-
-// const buffer = new ArrayBuffer(1024 * 1024 * 10) // reserves 10 MB
-// let bufferData = new Float64Array(buffer) // view the buffer as bytes
 
 self.onmessage = (e) => {
   // console.log('worker event', e)
@@ -52,11 +42,7 @@ self.onmessage = (e) => {
       break;
     case "init":
 			// console.log(`init`)
-			width = e.data.width
-      height = e.data.height
-      aspect = width / height
-			config = {...config,...e.data.options}
-      init().then(()=>{
+      init(e.data).then(()=>{
         // console.log("physics init complete")
         self.postMessage({
           action:"init-complete"
@@ -93,7 +79,7 @@ self.onmessage = (e) => {
             addDie(e.data.sides, e.data.id)
             break;
           case "rollDie":
-						// this won't work, need a die object
+						// TODO: this won't work, need a die object
             rollDie(e.data.id)
             break;
           case "stopSimulation":
@@ -115,27 +101,21 @@ self.onmessage = (e) => {
   }
 }
 
-// setTimeout(()=>{
-//   // bodies.forEach(rb => {
-//   //   console.log(`rb`, rb)
-//   //   const state = rb.isActive()
-//   //   console.log(`isActive`, state)
-//   //   console.log("motionState",rb.getMotionState())
-//   // })
-//   stopLoop = true
-// }, runTime)
-
 // runs when the worker loads to set up the Ammo physics world and load our colliders
 // loaded colliders will be cached and added to the world in a later post message
-const init = async () => {
+const init = async (data) => {
 		// console.log("running init")
+		width = data.width
+		height = data.height
+		aspect = width / height
+		config = {...config,...data.options}
 
 		Ammo = await new AmmoJS(ammoWASM)
 
 		tmpBtTrans = new Ammo.btTransform()
 		sharedVector3 = new Ammo.btVector3(0, 0, 0)
 
-		setStartPosition()
+		setStartPosition(aspect)
 		
 		// load our collider data
 		// perhaps we don't await this, let it run and resolve it later
@@ -489,6 +469,7 @@ const update = (delta) => {
 	return {movements, asleep}
 }
 
+let last = new Date().getTime()
 const loop = () => {
 	let now = new Date().getTime()
 	const delta = now - last
