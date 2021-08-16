@@ -9,11 +9,11 @@ let canvas, physicsWorker, physicsWorkerInit, offscreen, offscreenWorker, offscr
 const defaultOptions = {
   enableShadows: true,
   delay: 10,
-	gravity: 3,
-	// startPosition: [0,12,0],
+	gravity: 6,
+	startingHeight: 12,
 	spinForce: 20,
-	throwForce: 20,
-	zoomLevel: 4, // 0-7, can we round it out to 9? And reverse it because higher zoom means closer
+	throwForce: 3,
+	zoomLevel: 3, // 0-7, can we round it out to 9? And reverse it because higher zoom means closer
 	theme: 'nebula'
 }
 
