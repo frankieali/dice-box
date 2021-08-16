@@ -1,6 +1,7 @@
 import './style.css'
 import DiceBox from './DiceBoxOffscreen'
 import DiceParser from './DiceRollerParserItf'
+import DisplayResults from './UI/displayResults'
 
 // create DiceBox
 const box = new DiceBox('#scene-container', { 
@@ -27,12 +28,14 @@ box.initScene().then(()=>{
 const form = document.getElementById("dice-to-roll")
 const notation = document.getElementById("input--notation")
 const clearBtn = document.getElementById("btn--clear")
+const results = new DisplayResults()
 
 const submitForm = (e) => {
   e.preventDefault();
 
 	// clear the box
 	box.clear()
+	results.clear()
 
 	// roll those dice
 	box.roll(DRP.parseNotation(notation.value))
@@ -63,8 +66,12 @@ box.onRollComplete = (results) => {
 }
 
 form.addEventListener("submit", submitForm)
-clearBtn.addEventListener("click", () => box.clear())
+clearBtn.addEventListener("click", () => {
+	box.clear()
+	results.clear()
+})
 
 document.addEventListener("resultsAvailable", (e) => {
 	console.log(`Got these results: `, e.detail)
+	results.showResults(e.detail)
 })
