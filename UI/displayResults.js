@@ -5,13 +5,11 @@ class DisplayResults {
 		this.elem.className = 'displayResults'
 		this.resultsElem.className = 'results'
 		this.timeout = 500
-		this.injectStyles()
 		this.init()
 	}
 
 	init(){
-		// add html for results
-		// add listener for event
+		this.injectStyles()
 		this.elem.append(this.resultsElem)
 		document.body.prepend(this.elem)
 	}
@@ -68,9 +66,6 @@ class DisplayResults {
 
 		this.resultsElem.innerHTML = resultString
 		this.resultsElem.classList.remove('hideEffect')
-		// this.elem.style.display='none';
-		// this.elem.offsetHeight; // no need to store this anywhere, the reference is enough
-		// this.elem.style.display='flex';
 		this.resultsElem.classList.add('showEffect')
 	}
 	clear(){
