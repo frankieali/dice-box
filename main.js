@@ -4,7 +4,8 @@ import DiceParser from './DiceRollerParserItf'
 
 // create DiceBox
 const box = new DiceBox('#scene-container', { 
-  enableShadows: true
+  enableShadows: true,
+	theme: 'sunrise'
 })
 
 // create Notation Parser
@@ -14,7 +15,7 @@ const DRP = new DiceParser()
 box.initScene().then(()=>{
 	// console.log(`rollit without the parser`)
 	// roll a simple string
-	// box.roll('4d6+3')
+	// box.roll('4d6+3','sunset')
 	// roll an array of strings
 	// box.roll(['4d6+3','1d12'])
 	// box.roll([{sides:20,qty:2}])

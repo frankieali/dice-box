@@ -140,7 +140,10 @@ class World {
 	}
 
 	// add a die to another group. groupId is required
-  add(notation, groupId = 0) {
+  add(notation, groupId = 0, theme) {
+		if(typeof groupId === 'string' || theme) {
+			this.config.theme = theme
+		}
 		let parsedNotation = this.createNotationArray(notation)
 		this.makeRoll(parsedNotation, groupId)
   }
@@ -157,10 +160,13 @@ class World {
 		// returns notation that was removed
 	}
 
-  roll(notation) {
+  roll(notation, theme) {
 		// to add to a roll on screen use .add method
     // reset the offscreen worker and physics worker with each new roll
     this.clear()
+		if(theme) {
+			this.config.theme = theme
+		}
 		let parsedNotation = this.createNotationArray(notation)
 		this.makeRoll(parsedNotation)
   }
@@ -184,7 +190,8 @@ class World {
 				const roll = {
 					sides: notation.sides,
 					groupId: index,
-					rollId
+					rollId,
+					theme: this.config.theme
 				}
 	
 				rolls[rollId] = roll
