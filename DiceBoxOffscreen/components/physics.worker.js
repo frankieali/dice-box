@@ -19,14 +19,15 @@ let height = 150
 let aspect = 1
 let stopLoop = false
 let zoom = [43,37,32,26.5,23,20.5,18,15.75]
-let forces = {}
 
 const defaultOptions = {
-	zoomLevel: 0,
-	startPosition: [0,12,0],
-	spinForce: 20,
-	throwForce: 20,
+	zoomLevel: 3,
+	startingHeight: 12,
+	spinForce: 30,
+	throwForce: 2,
 	gravity: 4,
+	friction: .8,
+	settleTimeout: 5000,
 	// runTime: 15000, // TODO: force dice to sleep after specific time
 	// TODO: toss: "center", "edge", "allEdges"
 }
@@ -167,31 +168,35 @@ const setVector3 = (x,y,z) => {
 
 const setStartPosition = () => {
 	let size = zoom[config.zoomLevel]
-	let envelopeSize = size * .6 / 2
-	let xEnvelope = lerp(envelopeSize * aspect, -envelopeSize * aspect, Math.random())
-	let yEnvelope = lerp(envelopeSize, -envelopeSize, Math.random())
+	// let envelopeSize = size * .6 / 2
+	let edgeOffset = 3
+	let xMin = size * aspect / 2 - edgeOffset
+	let xMax = size * aspect / -2 + edgeOffset
+	let yMin = size / 2 - edgeOffset
+	let yMax = size / -2 + edgeOffset
+	// let xEnvelope = lerp(envelopeSize * aspect - edgeOffset * aspect, -envelopeSize * aspect + edgeOffset * aspect, Math.random())
+	let xEnvelope = lerp(xMin, xMax, Math.random())
+	let yEnvelope = lerp(yMin, yMax, Math.random())
 	let tossFromTop = Math.round(Math.random())
 	let tossFromLeft = Math.round(Math.random())
 	let tossX = Math.round(Math.random())
 	// console.log(`throw coming from`, tossX ? tossFromTop ? "top" : "bottom" : tossFromLeft ? "left" : "right")
 
-	forces = {
-		xMinForce: tossX ? -config.throwForce * aspect : tossFromLeft ? config.throwForce * aspect * .3 : -config.throwForce * aspect * .3,
-		xMaxForce: tossX ? config.throwForce * aspect : tossFromLeft ? config.throwForce * aspect * 1 : -config.throwForce * aspect * 1,
-		zMinForce: tossX ? tossFromTop ? config.throwForce * .3 : -config.throwForce * .3 : -config.throwForce,
-		zMaxForce: tossX ? tossFromTop ? config.throwForce * 1 : -config.throwForce * 1 : config.throwForce,
-	}
-	// console.log(`forces`, forces)
+	// forces = {
+	// 	xMinForce: tossX ? -config.throwForce * aspect : tossFromLeft ? config.throwForce * aspect * .3 : -config.throwForce * aspect * .3,
+	// 	xMaxForce: tossX ? config.throwForce * aspect : tossFromLeft ? config.throwForce * aspect * 1 : -config.throwForce * aspect * 1,
+	// 	zMinForce: tossX ? tossFromTop ? config.throwForce * .3 : -config.throwForce * .3 : -config.throwForce,
+	// 	zMaxForce: tossX ? tossFromTop ? config.throwForce * 1 : -config.throwForce * 1 : config.throwForce,
+	// }
 
 	config.startPosition = [
 		// tossing on x axis then z should be locked to top or bottom
 		// not tossing on x axis then x should be locked to the left or right
-		tossX ? xEnvelope : tossFromLeft ? (-size/2 * aspect) + 1 : (size/2 * aspect) - 1,
-		config.startPosition[1],
-		tossX ? tossFromTop ? (-size/2) + 1 : (size/2) - 1 : yEnvelope
+		tossX ? xEnvelope : tossFromLeft ? xMax : xMin,
+		config.startingHeight > zoom[config.zoomLevel] ? zoom[config.zoomLevel] : config.startingHeight, // start height can't be over size height
+		tossX ? tossFromTop ? yMax : yMin : yEnvelope
 	]
-	
-	// startPosition = [xEnvelope, startPosition[1], yEnvelope]
+
 	// console.log(`startPosition`, config.startPosition)
 }
 
@@ -226,7 +231,7 @@ const createRigidBody = (collisionShape, params) => {
 			-1
 		],
 		scale = [1,1,1],
-		friction = .8,
+		friction = config.friction,
 		restitution = 0
 	} = params
 
@@ -279,7 +284,7 @@ const addBoxToWorld = (size) => {
 	const groundMotionState = new Ammo.btDefaultMotionState(groundTransform)
 	const groundInfo = new Ammo.btRigidBodyConstructionInfo(0, groundMotionState, groundShape, localInertia)
 	const groundBody = new Ammo.btRigidBody(groundInfo)
-	groundBody.setFriction(1)
+	groundBody.setFriction(config.friction)
 	groundBody.setRestitution(0)
 	physicsWorld.addRigidBody(groundBody)
 	tempParts.push(groundBody)
@@ -291,7 +296,7 @@ const addBoxToWorld = (size) => {
 	const topMotionState = new Ammo.btDefaultMotionState(wallTopTransform)
 	const topInfo = new Ammo.btRigidBodyConstructionInfo(0, topMotionState, wallTopShape, localInertia)
 	const topBody = new Ammo.btRigidBody(topInfo)
-	topBody.setFriction(1)
+	topBody.setFriction(config.friction)
 	topBody.setRestitution(0)
 	physicsWorld.addRigidBody(topBody)
 	tempParts.push(topBody)
@@ -303,7 +308,7 @@ const addBoxToWorld = (size) => {
 	const bottomMotionState = new Ammo.btDefaultMotionState(wallBottomTransform)
 	const bottomInfo = new Ammo.btRigidBodyConstructionInfo(0, bottomMotionState, wallBottomShape, localInertia)
 	const bottomBody = new Ammo.btRigidBody(bottomInfo)
-	bottomBody.setFriction(1)
+	bottomBody.setFriction(config.friction)
 	bottomBody.setRestitution(0)
 	physicsWorld.addRigidBody(bottomBody)
 	tempParts.push(bottomBody)
@@ -315,7 +320,7 @@ const addBoxToWorld = (size) => {
 	const rightMotionState = new Ammo.btDefaultMotionState(wallRightTransform)
 	const rightInfo = new Ammo.btRigidBodyConstructionInfo(0, rightMotionState, wallRightShape, localInertia)
 	const rightBody = new Ammo.btRigidBody(rightInfo)
-	rightBody.setFriction(1)
+	rightBody.setFriction(config.friction)
 	rightBody.setRestitution(0)
 	physicsWorld.addRigidBody(rightBody)
 	tempParts.push(rightBody)
@@ -327,7 +332,7 @@ const addBoxToWorld = (size) => {
 	const leftMotionState = new Ammo.btDefaultMotionState(wallLeftTransform)
 	const leftInfo = new Ammo.btRigidBodyConstructionInfo(0, leftMotionState, wallLeftShape, localInertia)
 	const leftBody = new Ammo.btRigidBody(leftInfo)
-	leftBody.setFriction(1)
+	leftBody.setFriction(config.friction)
 	leftBody.setRestitution(0)
 	physicsWorld.addRigidBody(leftBody)
 	tempParts.push(leftBody)
@@ -354,6 +359,7 @@ const addDie = (sides, id) => {
 		// quat: colliders[cType].rotationQuaternion,
 	})
 	newDie.id = id
+	newDie.timeout = config.settleTimeout
 	physicsWorld.addRigidBody(newDie)
 	bodies.push(newDie)
 	// console.log(`added collider for `, type)
@@ -390,10 +396,15 @@ const rollDie = (die) => {
 
 	//TODO: given box width and height, set throw point and force randomly around box perimiter
 
+	// die.setLinearVelocity(setVector3(
+	// 	lerp(forces.xMinForce, forces.xMaxForce, Math.random()),
+	// 	lerp(-config.throwForce, 0, Math.random()),
+	// 	lerp(forces.zMinForce, forces.zMaxForce, Math.random())
+	// ))
 	die.setLinearVelocity(setVector3(
-		lerp(forces.xMinForce, forces.xMaxForce, Math.random()),
-		lerp(-config.throwForce, 0, Math.random()),
-		lerp(forces.zMinForce, forces.zMaxForce, Math.random())
+		lerp(-config.startPosition[0] * .5, -config.startPosition[0] * config.throwForce, Math.random()),
+		lerp(-config.startPosition[1], 0, Math.random()),
+		lerp(-config.startPosition[2] * .5, -config.startPosition[2] * config.throwForce, Math.random()),
 	))
 	// die.setLinearVelocity(setVector3(
 	// 	lerp(-config.throwForce*aspect, config.throwForce*aspect, Math.random()),
@@ -433,7 +444,8 @@ const update = (delta) => {
 		const rb = bodies[i]
 		const speed = rb.getLinearVelocity().length()
 		const tilt = rb.getAngularVelocity().length()
-		if(speed < .01 && tilt < .01) {
+
+		if(speed < .01 && tilt < .01 || rb.timeout < 0) {
 			rb.asleep = true
 			rb.setMassProps(0)
 			rb.forceActivationState(3)
@@ -443,6 +455,7 @@ const update = (delta) => {
 			asleep.push(i)
 			continue
 		}
+		rb.timeout -= delta
 		const ms = rb.getMotionState()
 		if (ms) {
 			ms.getWorldTransform(tmpBtTrans)
