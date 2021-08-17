@@ -16,7 +16,7 @@
     "@babylonjs/loaders": "^5.0.0-alpha.22",
     "@babylonjs/materials": "^5.0.0-alpha.22",
     "ammo.js": "github:kripken/ammo.js",
-    "dice-roller-parser": "^0.1.8"
+    "dice-roller-parser": "github:frankieali/dice_roller"
   },
   "devDependencies": {
     "vite": "^2.3.2"

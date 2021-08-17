@@ -47,6 +47,28 @@ class DisplayResults {
 			transform: scale(.5);
 			opacity: 0;
 		}
+		.crit-success {
+			color: green;
+		}
+		.crit-failure {
+			color: firebrick;
+		}
+		.die-dropped {
+			text-decoration: line-through;
+			opacity: .4;
+		}
+		.die-rerolled {
+			text-decoration: line-through;
+			opacity: .4;
+		}
+		.die-exploded {
+			color: green;
+		}
+		.die-exploded::after {
+			content: '!';
+			display: 'block';
+			color: green;
+		}
 		`
 		// Get the first script tag
 		const ref = document.querySelector('script');
@@ -63,7 +85,36 @@ class DisplayResults {
 			if(i !== 0) {
 				resultString += ', '
 			}
-			resultString += `${roll.value}`
+			let val = roll.value
+			let classes = ''
+
+			if(roll.critical === "success") {
+				classes = 'crit-success'
+			}
+			if(roll.critical === "failure") {
+				classes = 'crit-failure'
+			}
+
+			switch (roll.operation) {
+				case "drop":
+					classes += ' die-dropped'
+					break;
+				case "reroll":
+					classes += ' die-rerolled'
+					break;
+				case "explode":
+					classes += ' die-exploded'
+					break;
+			
+				default:
+					break;
+			}
+
+			if(classes !== ''){
+				val = `<span class='${classes.trim()}'>${val}</span>`
+			}
+
+			resultString += val
 		})
 		resultString += ` = <strong>${data.value}</strong>`
 
