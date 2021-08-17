@@ -4,7 +4,7 @@ import diceWorker from './components/physics.worker?worker'
 import { debounce } from './helpers'
 
 // private variables
-let canvas, physicsWorker, physicsWorkerInit, offscreen, offscreenWorker, offscreenWorkerInit, groupIndex, rollIndex
+let canvas, physicsWorker, physicsWorkerInit, offscreen, offscreenWorker, offscreenWorkerInit, groupIndex = 0, rollIndex = 0
 
 const defaultOptions = {
   enableShadows: true,
@@ -92,7 +92,11 @@ class World {
 				case 'roll-complete':
 					// calculate the value of all the rolls added together - advanced rolls such as 4d6dl1 (4d6 drop lowest 1) will require an external parser
 					this.rollData.forEach(rollGroup => {
-						rollGroup.value = Object.values(rollGroup.rolls).reduce((val,roll) => val + roll.result,0)
+						// convert rolls from indexed objects to array
+						rollGroup.rolls = Object.values(rollGroup.rolls).map(roll => roll)
+						// add up the values
+						rollGroup.value = rollGroup.rolls.reduce((val,roll) => val + roll.result,0)
+						// add the modifier
 						rollGroup.value += rollGroup.modifier ? rollGroup.modifier : 0
 					})
 					this.onRollComplete(this.rollData)
@@ -140,7 +144,7 @@ class World {
 	}
 
 	// add a die to another group. groupId is required
-  add(notation, groupId = 0, theme) {
+  add(notation, groupId, theme) {
 		if(typeof groupId === 'string' || theme) {
 			this.config.theme = theme
 		}
@@ -176,8 +180,8 @@ class World {
 
 		// loop through the number of dice in the group and roll each one
 		parsedNotation.forEach(notation => {
-			const rolls = {}
 			// console.log(`notation`, notation)
+			const rolls = {}
 			const index = hasGroupId ? groupId : groupIndex
 			for (var i = 0, len = notation.qty; i < len; i++) {
 				let rollId = rollIndex
@@ -230,7 +234,7 @@ class World {
 			notation.forEach(roll => {
 				// if notation is an array of strings
 				if(typeof roll === 'string') {
-					parsedNotation.push(this.parse(notation))
+					parsedNotation.push(this.parse(roll))
 				}
 				else {
 					// TODO: ensure that there is a 'sides' and 'qty' value on the object - required for making a roll
