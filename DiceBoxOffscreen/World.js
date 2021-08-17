@@ -173,12 +173,12 @@ class World {
 
 	makeRoll(parsedNotation, groupId){
 		const hasGroupId = groupId !== undefined
-		const index = hasGroupId ? groupId : groupIndex
 
-		const rolls = {}
 		// loop through the number of dice in the group and roll each one
 		parsedNotation.forEach(notation => {
+			const rolls = {}
 			// console.log(`notation`, notation)
+			const index = hasGroupId ? groupId : groupIndex
 			for (var i = 0, len = notation.qty; i < len; i++) {
 				let rollId = rollIndex
 				if(notation.rollId !== undefined){
@@ -209,7 +209,7 @@ class World {
 				// save this roll group for later
 				notation.rolls = rolls
 				this.rollData[index] = notation
-				groupIndex++
+				++groupIndex
 			}
 		})
 	}
