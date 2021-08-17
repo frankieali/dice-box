@@ -5,7 +5,7 @@ import { createDiceBox } from './diceBox'
 import { createLights } from './lights'
 import Dice from './Dice'
 
-let canvas, config, engine, scene, camera, lights, physicsWorkerPort, dieCache = [], sleeperCache = [], count = 0
+let canvas, config, engine, scene, camera, lights, physicsWorkerPort, dieCache = [], sleeperCache = [], count = 0, dieRollTimer = []
 
 // these are messages sent to this worker from World.js
 self.onmessage = (e) => {
@@ -18,11 +18,12 @@ self.onmessage = (e) => {
       break
     case "addDie":
 			// space out adding the dice so they don't lump together too much
-			setTimeout(() => {
+			dieRollTimer.push(setTimeout(() => {
 				add(e.data.options)
-			}, count++ * config.delay)
+			}, count++ * config.delay))
       break
     case "clearDice":
+			dieRollTimer.forEach(timer=>clearTimeout(timer))
 			clear()
       break
     case "resize":
@@ -103,6 +104,7 @@ const renderLoop = () => {
   if(sleeperCache.length !== 0 && dieCache.length === 0) {
     console.log(`no dice moving`)
     engine.stopRenderLoop()
+		count = 0
 		// stop the physics engine
     physicsWorkerPort.postMessage({
       action: "stopSimulation",
