@@ -56,7 +56,10 @@ class DisplayResults {
 	}
 	showResults(data){
 		let resultString = ''
-		data.rolls.forEach((roll,i) => {
+		const rolls = this.recursiveSearch(data,'rolls').flat()
+		console.log(`rolls`, rolls)
+
+		rolls.forEach((roll,i) => {
 			if(i !== 0) {
 				resultString += ', '
 			}
@@ -71,7 +74,23 @@ class DisplayResults {
 	clear(){
 		this.resultsElem.classList.replace('showEffect','hideEffect')
 		setTimeout(()=>this.resultsElem.classList.remove('hideEffect'),this.timeout)
-		
+	}
+	// make this static for use by other systems?
+	recursiveSearch(obj, searchKey, results = [], callback) {
+		const r = results;
+		Object.keys(obj).forEach(key => {
+			const value = obj[key];
+			// if(key === searchKey && typeof value !== 'object'){
+			if(key === searchKey){
+				r.push(value);
+				if(callback && typeof callback === 'function') {
+					callback(obj)
+				}
+			} else if(value && typeof value === 'object'){
+				this.recursiveSearch(value, searchKey, r, callback);
+			}
+		});
+		return r;
 	}
 }
 
