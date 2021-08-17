@@ -77,20 +77,26 @@ class DisplayResults {
 		ref.parentNode.insertBefore(style, ref);
 	}
 	showResults(data){
+		let rolls
+		if(data.rolls && !Array.isArray(data.rolls)){
+			rolls = data.rolls.map(roll => roll)
+		} else {
+			rolls = this.recursiveSearch(data,'rolls').flat()
+		}
+		let total = data.value || rolls.reduce((val,roll) => val + roll.result,0)
 		let resultString = ''
-		const rolls = this.recursiveSearch(data,'rolls').flat()
 
 		rolls.forEach((roll,i) => {
 			if(i !== 0) {
 				resultString += ', '
 			}
-			let val = roll.value
+			let val = roll.value || roll.result
 			let classes = ''
 
-			if(roll.critical === "success") {
+			if(roll.critical === "success" || (roll.result && roll.sides == roll.result)) {
 				classes = 'crit-success'
 			}
-			if(roll.critical === "failure") {
+			if(roll.critical === "failure" || (roll.result && roll.result === 1)) {
 				classes = 'crit-failure'
 			}
 
@@ -115,7 +121,7 @@ class DisplayResults {
 
 			resultString += val
 		})
-		resultString += ` = <strong>${data.value}</strong>`
+		resultString += ` = <strong>${total}</strong>`
 
 		this.resultsElem.innerHTML = resultString
 		this.resultsElem.classList.remove('hideEffect')
