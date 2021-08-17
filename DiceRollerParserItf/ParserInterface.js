@@ -128,8 +128,8 @@ class ParserInterface {
 							// this gets complicated for d100 and d20 rerolls
 							// d20 explode triggers a d6. The parser will parse extra die value as a d20 and not a d6. So the value as float is incorrect. Same for d100. Need to do some extra math. Would want to convert the value here, perhaps with a flag on the reroll
 							Object.entries(rollsCopy).forEach(([key, value]) => {
-								console.log(`mod`, mod)
-								console.log(`mod.target`, mod.target)
+								// console.log(`mod`, mod)
+								// console.log(`mod.target`, mod.target)
 								const max = value.sides
 								const target = mod.target?.value?.value || max
 								const op = mod.target?.mod || '='

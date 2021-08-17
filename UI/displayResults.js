@@ -79,7 +79,6 @@ class DisplayResults {
 	showResults(data){
 		let resultString = ''
 		const rolls = this.recursiveSearch(data,'rolls').flat()
-		console.log(`rolls`, rolls)
 
 		rolls.forEach((roll,i) => {
 			if(i !== 0) {
