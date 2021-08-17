@@ -169,7 +169,7 @@ const setVector3 = (x,y,z) => {
 const setStartPosition = () => {
 	let size = zoom[config.zoomLevel]
 	// let envelopeSize = size * .6 / 2
-	let edgeOffset = 3
+	let edgeOffset = 2
 	let xMin = size * aspect / 2 - edgeOffset
 	let xMax = size * aspect / -2 + edgeOffset
 	let yMin = size / 2 - edgeOffset
