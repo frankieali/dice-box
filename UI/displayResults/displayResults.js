@@ -1,3 +1,5 @@
+import { loadCSS } from '../helpers'
+
 class DisplayResults {
 	constructor() {
 		this.elem = document.createElement('div');
@@ -8,74 +10,12 @@ class DisplayResults {
 		this.init()
 	}
 
-	init(){
-		this.injectStyles()
+	async init(){
+		await loadCSS('./displayResults.css', import.meta.url, 'displayResults')
 		this.elem.append(this.resultsElem)
 		document.body.prepend(this.elem)
 	}
-	injectStyles(){
-		const style = document.createElement('style')
-		style.innerHTML = `
-		.displayResults {
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			position: absolute;
-			top: 0;
-			right: 0;
-			bottom: 0;
-			left: 0;
-			pointer-events: none;
-			z-index: 1;
-			transform: translate3d(0,0,0);
-		}
-		.displayResults .results {
-			background: #CCCCCC;
-			font-size: 2rem;
-			padding: 10px 20px;
-			margin: 40px;
-			border-radius: 10px;
-			transform: scale(1.5);
-			opacity: 0;
-			transition: all ${this.timeout}ms;
-		}
-		.displayResults .showEffect {
-			transform: scale(1);
-			opacity: 1;
-		}
-		.displayResults .hideEffect {
-			transform: scale(.5);
-			opacity: 0;
-		}
-		.crit-success {
-			color: green;
-		}
-		.crit-failure {
-			color: firebrick;
-		}
-		.die-dropped {
-			text-decoration: line-through;
-			opacity: .4;
-		}
-		.die-rerolled {
-			text-decoration: line-through;
-			opacity: .4;
-		}
-		.die-exploded {
-			color: green;
-		}
-		.die-exploded::after {
-			content: '!';
-			display: 'block';
-			color: green;
-		}
-		`
-		// Get the first script tag
-		const ref = document.querySelector('script');
 
-		// Insert our new styles before the first script tag
-		ref.parentNode.insertBefore(style, ref);
-	}
 	showResults(data){
 		let rolls
 		if(data.rolls && !Array.isArray(data.rolls)){
@@ -124,6 +64,9 @@ class DisplayResults {
 		resultString += ` = <strong>${total}</strong>`
 
 		this.resultsElem.innerHTML = resultString
+		if(!this.resultsElem.style.transition) {
+			this.resultsElem.style.transition = `all ${this.timeout}ms`
+		}
 		this.resultsElem.classList.remove('hideEffect')
 		this.resultsElem.classList.add('showEffect')
 	}
