@@ -1,11 +1,11 @@
 import { createEngine } from './engine'
 import { createScene } from './scene'
 import { createCamera } from './camera'
-import { createDiceBox } from './diceBox'
 import { createLights } from './lights'
+import DiceBox from './diceBox'
 import Dice from './Dice'
 
-let canvas, config, engine, scene, camera, lights, physicsWorkerPort, dieCache = [], sleeperCache = [], count = 0, dieRollTimer = []
+let canvas, config, engine, scene, camera, diceBox, lights, physicsWorkerPort, dieCache = [], sleeperCache = [], count = 0, dieRollTimer = []
 
 // these are messages sent to this worker from World.js
 self.onmessage = (e) => {
@@ -72,12 +72,12 @@ const initScene = async (data) => {
   sleeperCache = [] // cache dice that have stopped rolling
 
   // create the box that provides surfaces for shadows to render on
-  createDiceBox({
-    ...config,
+	diceBox = new DiceBox({
+		...config,
     zoomLevel: config.zoomLevel,
     aspect: canvas.width / canvas.height,
     lights,
-  })
+	})
   
   // loading all our dice models
   // we use to load these models individually as needed, but it's faster to load them all at once and prevents animation jank when rolling
@@ -261,11 +261,6 @@ const resize = (data) => {
 	canvas.width = data.width
 	canvas.height = data.height
 	// redraw the dicebox
-	createDiceBox({
-		...config,
-		zoomLevel: config.zoomLevel,
-		aspect: canvas.width / canvas.height,
-		lights,
-	})
+	diceBox.create()
 	engine.resize()
 }
