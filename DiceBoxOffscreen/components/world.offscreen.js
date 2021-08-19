@@ -26,6 +26,9 @@ self.onmessage = (e) => {
 			dieRollTimer.forEach(timer=>clearTimeout(timer))
 			clear()
       break
+		case "removeDie":
+			remove(e.data)
+			break;
     case "resize":
 			resize(e.data)
       break
@@ -33,7 +36,6 @@ self.onmessage = (e) => {
       initScene(e.data)
       break
     case "connect": // These are messages sent from physics.worker.js
-      // console.log("connecting to port", e.ports[0])
       physicsWorkerPort = e.ports[0]
       physicsWorkerPort.onmessage = (e) => {
         switch (e.data.action) {
@@ -77,6 +79,7 @@ const initScene = async (data) => {
     zoomLevel: config.zoomLevel,
     aspect: canvas.width / canvas.height,
     lights,
+		scene
 	})
   
   // loading all our dice models
@@ -102,7 +105,7 @@ const render = () => {
 const renderLoop = () => {
   // if no dice awake then stop the render loop and save some CPU power (unless we're in debug mode where we want the arc camera to continue working)
   if(sleeperCache.length !== 0 && dieCache.length === 0) {
-    console.log(`no dice moving`)
+    console.info(`no dice moving`)
     engine.stopRenderLoop()
 		count = 0
 		// stop the physics engine
@@ -121,6 +124,9 @@ const renderLoop = () => {
 }
 
 const clear = () => {
+	if(!dieCache.length && !sleeperCache.length) {
+		return
+	}
 	// stop anything that's currently rendering
 	engine.stopRenderLoop()
 	// clear all dice
@@ -129,9 +135,8 @@ const clear = () => {
 	Dice.resetCount()
 	count = 0
 
-	// step the scene a few frames frame
+	// step the animation forward
 	scene.render()
-	engine.stopRenderLoop()
 
 	dieCache = []
 	sleeperCache = []
@@ -139,20 +144,23 @@ const clear = () => {
 
 // add a die to the scene
 const add = async (options) => {
-	options.dieType = `d${options.sides}`
 	if(engine.activeRenderLoops.length === 0) {
 		render()
 	}
+
 	// const themes = ['galaxy','gemstone','glass','iron','nebula','sunrise','sunset','walnut']
 	// options.theme = themes[Math.floor(Math.random() * themes.length)]
   // loadDie allows you to specify sides(dieType) and theme and returns the options you passed in
   const newDie = await Dice.loadDie(options).then( response =>  {
     // after the die model and textures have loaded we can add the die to the scene for rendering
-    return new Dice(response, lights, config.enableShadows)
+		if(!response.lights) {
+			response.lights = lights
+		}
+		if(!response.enableShadows){
+			response.enableShadows = config.enableShadows
+		}
+    return new Dice(response)
   })
-
-	newDie.rollId = options.rollId
-	newDie.groupId = options.groupId
 
   // save the die just created to the cache
   dieCache.push(newDie)
@@ -167,7 +175,7 @@ const add = async (options) => {
   // for d100's we need to add an additional d10 and pair it up with the d100 just created
   if(options.sides === 100) {
     // assign the new die to a property on the d100 - spread the options in order to pass a matching theme
-    newDie.d10Instance = await Dice.loadDie({...options, sides: 10, dieType: 'd10'}).then( response =>  {
+    newDie.d10Instance = await Dice.loadDie({...options, sides: 10}).then( response =>  {
       const d10Instance = new Dice(response, lights, config.enableShadows)
       // identify the parent of this d10 so we can calculate the roll result later
       d10Instance.dieParent = newDie
@@ -185,6 +193,21 @@ const add = async (options) => {
   // return the die instance
   return newDie
 
+}
+
+const remove = (data) => {
+	// remove from sleepercache
+	sleeperCache = sleeperCache.filter((die) => {
+		let match = die.groupId === data.groupId && die.rollId === data.rollId
+		if(match){
+			// remove the mesh from the scene
+			die.mesh.dispose()
+		}
+		return !match
+	})
+
+	// step the animation forward
+	scene.render()
 }
 
 const updatesFromPhysics = (data) => {
@@ -210,26 +233,28 @@ const updatesFromPhysics = (data) => {
 				const d100 = sleeper.sides === 100 ? sleeper : sleeper.dieParent
 				const d10 = sleeper.sides === 10 ? sleeper : sleeper.d10Instance
 				if (d10.result === 0 && d100.result === 0) {
-					result = 100; // 00 + 0 is 100 on a d100
+					d100.result = 100; // 00 + 0 is 100 on a d100
 				} else {
-					result = d100.result + d10.result
+					d100.result = d100.result + d10.result
 				}
+
 				self.postMessage({action:"roll-result", die: {
-					rollId: d100.rollId,
 					groupId: d100.groupId,
-					result
+					rollId: d100.rollId,
+					id: d100.id,
+					result : d100.result
 				}})
 			}
 		} else {
-			// console.log(`${sleeper.sides} result:`, result)
-			// console.log(`sleeper`, sleeper)
 			// turn 0's on a d10 into a 10
 			if(sleeper.sides === 10 && sleeper.result === 0) {
 				sleeper.result = 10
 			}
+
 			self.postMessage({action:"roll-result", die: {
-				rollId: sleeper.rollId,
 				groupId: sleeper.groupId,
+				rollId: sleeper.rollId,
+				id: sleeper.id,
 				result: sleeper.result
 			}})
 		}
@@ -249,7 +274,9 @@ const handleUpdates = (updates) => {
     if (!dieCache[i]) break
     let [px,py,pz,qx,qy,qz,qw,id] = updates[i]
     let obj = dieCache[i].mesh
+		// TODO: perhaps just use the update id to get the dieCache
     if(dieCache[i].id !== id) {
+			// alert that workers have fallen out of sync
       console.error("id does not match")
     }
     obj.position.set(px, py, pz)

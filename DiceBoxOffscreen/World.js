@@ -4,15 +4,15 @@ import diceWorker from './components/physics.worker?worker'
 import { debounce } from './helpers'
 
 // private variables
-let canvas, physicsWorker, physicsWorkerInit, offscreen, offscreenWorker, offscreenWorkerInit, groupIndex = 0, rollIndex = 0
+let canvas, physicsWorker, physicsWorkerInit, offscreen, offscreenWorker, offscreenWorkerInit, groupIndex = 0, rollIndex = 0, idIndex = 0
 
 const defaultOptions = {
   enableShadows: true,
   delay: 10,
-	gravity: 6,
-	startingHeight: 12,
+	gravity: 2, //TODO: high gravity will cause dice piles to jiggle
+	startingHeight: 10,
 	spinForce: 20,
-	throwForce: 3,
+	throwForce: 2.5,
 	zoomLevel: 3, // 0-7, can we round it out to 9? And reverse it because higher zoom means closer
 	theme: 'nebula'
 }
@@ -86,20 +86,12 @@ class World {
 					const die = e.data.die
 					// map die results back to our rollData
 					this.rollData[die.groupId].rolls[die.rollId].result = die.result
+					// we need to add the die id to our entry, or should that be done here?
 					// TODO: die should have 'sides' or is that unnecessary data passed between workers?
 					this.onDieComplete(die)
 					break;
 				case 'roll-complete':
-					// calculate the value of all the rolls added together - advanced rolls such as 4d6dl1 (4d6 drop lowest 1) will require an external parser
-					this.rollData.forEach(rollGroup => {
-						// convert rolls from indexed objects to array
-						rollGroup.rolls = Object.values(rollGroup.rolls).map(roll => roll)
-						// add up the values
-						rollGroup.value = rollGroup.rolls.reduce((val,roll) => val + roll.result,0)
-						// add the modifier
-						rollGroup.value += rollGroup.modifier ? rollGroup.modifier : 0
-					})
-					this.onRollComplete(this.rollData)
+					this.onRollComplete(this.getRollResults())
 					break;
 			}
     }
@@ -133,14 +125,17 @@ class World {
     offscreenWorker.postMessage({action: "clearDice"})
     // clear all physics die bodies
     physicsWorker.postMessage({action: "clearDice"})
+		return this
   }
 
 	hide() {
 		canvas.style.display = 'none'
+		return this
 	}
 
 	show() {
 		canvas.style.display = 'block'
+		return this
 	}
 
 	// add a die to another group. groupId is required
@@ -150,18 +145,30 @@ class World {
 		}
 		let parsedNotation = this.createNotationArray(notation)
 		this.makeRoll(parsedNotation, groupId)
+		return this
   }
 
-	reroll(groupId, rollId, hide = false) {
-		// TODO: this should find a die by groupId and rollId, remove it (from workers and rollData), roll it again
-		// call this.remove then call this.add
-
+	reroll(die) {
+		// TODO: add hide if you want to keep the die result for an external parser
+		// TODO: reroll group
+		// TODO: reroll array
+		this.remove(die)
+		die.qty = 1
+		this.add(die, die.groupId)
+		return this
 	}
 
-	remove(groupId, rollId, hide = false) {
+	remove(die) {
+		const {groupId, rollId, hide = false} = die
 		// this will remove a roll from workers and rolldata
-		// hide if you want to keep the die result for an external parser
-		// returns notation that was removed
+		// TODO: hide if you want to keep the die result for an external parser
+		// delete the roll from cache
+		delete this.rollData[groupId].rolls[rollId]
+		// remove the die from the render
+		offscreenWorker.postMessage({action: "removeDie", groupId, rollId})
+		// remove the die from the physics bodies - we do this in case there's a reroll. Don't want new dice interacting with a hidden physics body
+		physicsWorker.postMessage({action: "removeDie", id: rollId})
+		return this
 	}
 
   roll(notation, theme) {
@@ -173,6 +180,7 @@ class World {
 		}
 		let parsedNotation = this.createNotationArray(notation)
 		this.makeRoll(parsedNotation)
+		return this
   }
 
 	makeRoll(parsedNotation, groupId){
@@ -184,17 +192,15 @@ class World {
 			const rolls = {}
 			const index = hasGroupId ? groupId : groupIndex
 			for (var i = 0, len = notation.qty; i < len; i++) {
-				let rollId = rollIndex
-				if(notation.rollId !== undefined){
-					rollId = notation.rollId
-				} else {
-					rollIndex++
-				}
+				// id's start at zero and zero can be falsy, so we check for undefined
+				let rollId = notation.rollId !== undefined ? notation.rollId : rollIndex++
+				let id = notation.id !== undefined ? notation.id : idIndex++
 
 				const roll = {
 					sides: notation.sides,
 					groupId: index,
 					rollId,
+					id,
 					theme: this.config.theme
 				}
 	
@@ -287,6 +293,18 @@ class World {
       modifier : mod,
     }
   }
+
+	getRollResults(){
+		// calculate the value of all the rolls added together - advanced rolls such as 4d6dl1 (4d6 drop lowest 1) will require an external parser
+
+		this.rollData.forEach(rollGroup => {
+			// add up the values
+			rollGroup.value = Object.values(rollGroup.rolls).reduce((val,roll) => val + roll.result,0)
+			// add the modifier
+			rollGroup.value += rollGroup.modifier ? rollGroup.modifier : 0
+		})
+		return this.rollData
+	}
 }
 
 export default World

@@ -6,19 +6,24 @@ import '@babylonjs/core/Meshes/instancedMesh'
 import { loadTheme } from './themes'
 
 // caching some variables here
-let meshes = {}, themes = {}, diceCombos = {}, count = 1, defaultTheme = 'nebula'
+let meshes = {}, themes = {}, diceCombos = {}, count = 0
+const defaultOptions = {
+	theme: 'nebula',
+	lights: [],
+	enableShadows: false
+}
 
 class Dice {
-  constructor({dieType = 'd20', theme = defaultTheme, ...rest}, sceneLights, enableShadows) {
-		Object.assign(this, rest)
-    this.id = count
-    this.dieType = dieType
+  constructor(options) {
+		// const {dieType = 'd20', theme = defaultTheme, ...rest}, sceneLights, enableShadows = options
+		Object.assign(this, defaultOptions, options)
+    this.id = options.id !== undefined ? options.id : count++
+		this.dieType = `d${this.sides}`
     this.mesh = null
     this._result = null
     this.asleep = false
-    this.theme = theme
-    this.comboKey = `${dieType}_${theme}`
-    this.createInstance({lights: sceneLights, enableShadows})
+    this.comboKey = `${this.dieType}_${this.theme}`
+    this.createInstance()
   }
 
 	get result() {
@@ -33,8 +38,7 @@ class Dice {
 		count = 0
 	}
 
-  createInstance(options) {
-		const {lights = [], enableShadows = false} = options
+  createInstance() {
     // create die instance
     const dieInstance = diceCombos[this.comboKey].createInstance(`${this.dieType}-instance-${count}`)
 		// start the instance under the floor, out of camera view
@@ -48,10 +52,10 @@ class Dice {
 		
 		//TODO: die is loading in the middle of the screen. flashes before animation starts
 		// hide the die, reveal when it's ready to toss or after first update from physics
-    if(enableShadows){
-      for (const key in lights) {
+    if(this.enableShadows){
+      for (const key in this.lights) {
         if(key !== 'hemispheric' ) {
-          lights[key].shadowGenerator.addShadowCaster(dieInstance)
+          this.lights[key].shadowGenerator.addShadowCaster(dieInstance)
         }
       }
     }
@@ -65,7 +69,8 @@ class Dice {
 
   // TODO: add themeOptions for colored materials, must ensure theme and themeOptions are unique somehow
   static async loadDie(options) {
-    const { dieType, theme = defaultTheme} = options
+    const { sides, theme = defaultOptions.theme} = options
+		let dieType = 'd' + sides
     // create a key for this die type and theme combo for caching and instance creation
     const comboKey = `${dieType}_${theme}`
 
@@ -86,7 +91,7 @@ class Dice {
   }
 
   // load all the dice from a webWorker
-  static async loadModels(options) {
+  static async loadModels() {
     const models = await SceneLoader.ImportMeshAsync("", "/DiceBoxOffscreen/assets/models/diceMeshes.glb")
     // const model = await SceneLoader.ImportMeshAsync(["die","collider"], "./DiceBox/assets/models/", `d20.glb`)
     models.meshes.forEach(model => {

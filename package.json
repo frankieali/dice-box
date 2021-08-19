@@ -19,7 +19,7 @@
     "dice-roller-parser": "github:frankieali/dice_roller"
   },
   "devDependencies": {
-    "vite": "^2.3.2"
+    "vite": "^2.5.0"
   },
   "browserslist": {
     "production": [

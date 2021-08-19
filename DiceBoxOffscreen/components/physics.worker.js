@@ -35,33 +35,23 @@ const defaultOptions = {
 let config = {...defaultOptions}
 
 self.onmessage = (e) => {
-  // console.log('worker event', e)
-  // console.log("physicsWorker got message:", e.data.action)
   switch (e.data.action) {
     case "rollDie":
       rollDie(e.data.sides)
       break;
     case "init":
-			// console.log(`init`)
       init(e.data).then(()=>{
-        // console.log("physics init complete")
         self.postMessage({
           action:"init-complete"
         })
       })
       break
     case "clearDice":
-      // clear all bodies
-      stopLoop = true
-      bodies.forEach(body => physicsWorld.removeRigidBody(body))
-      sleepingBodies.forEach(body => physicsWorld.removeRigidBody(body))
-      bodies = []
-      sleepingBodies = []
-      // restart the simulation loop
-      stopLoop = false
-			// TODO: need to step animation loop one frame
-      // loop()
+			clearDice(e.data)
       break
+		case "removeDie":
+			removeDie(e.data)
+			break;
 		case "resize":
 			width = e.data.width
 			height = e.data.height
@@ -69,10 +59,8 @@ self.onmessage = (e) => {
 			addBoxToWorld(zoom[config.zoomLevel])
 			break
     case "connect":
-      // console.log("connecting to port", e.ports[0])
       worldWorkerPort = e.ports[0]
       worldWorkerPort.onmessage = (e) => {
-        // console.log(`e`, e)
         switch (e.data.action) {
           case "addDie":
 						// toss from all edges
@@ -88,8 +76,8 @@ self.onmessage = (e) => {
 						
             break;
           case "resumeSimulation":
-            stopLoop = false
 						setStartPosition()
+            stopLoop = false
 						loop()
             break;
           default:
@@ -105,7 +93,6 @@ self.onmessage = (e) => {
 // runs when the worker loads to set up the Ammo physics world and load our colliders
 // loaded colliders will be cached and added to the world in a later post message
 const init = async (data) => {
-		// console.log("running init")
 		width = data.width
 		height = data.height
 		aspect = width / height
@@ -257,13 +244,13 @@ const createRigidBody = (collisionShape, params) => {
 		localInertia
 	)
 	const rigidBody = new Ammo.btRigidBody(rbInfo)
-	// console.log(`rigidBody`, rigidBody)
 	
 	// rigid body properties
 	if (mass > 0) rigidBody.setActivationState(4) // Disable deactivation
 	rigidBody.setCollisionFlags(collisionFlags)
 	rigidBody.setFriction(friction)
 	rigidBody.setRestitution(restitution)
+	rigidBody.setDamping(.5, .4)
 
 	// ad rigid body to physics world
 	// physicsWorld.addRigidBody(rigidBody)
@@ -297,7 +284,7 @@ const addBoxToWorld = (size) => {
 	const topInfo = new Ammo.btRigidBodyConstructionInfo(0, topMotionState, wallTopShape, localInertia)
 	const topBody = new Ammo.btRigidBody(topInfo)
 	topBody.setFriction(config.friction)
-	topBody.setRestitution(0)
+	topBody.setRestitution(.6)
 	physicsWorld.addRigidBody(topBody)
 	tempParts.push(topBody)
 
@@ -309,7 +296,7 @@ const addBoxToWorld = (size) => {
 	const bottomInfo = new Ammo.btRigidBodyConstructionInfo(0, bottomMotionState, wallBottomShape, localInertia)
 	const bottomBody = new Ammo.btRigidBody(bottomInfo)
 	bottomBody.setFriction(config.friction)
-	bottomBody.setRestitution(0)
+	bottomBody.setRestitution(.6)
 	physicsWorld.addRigidBody(bottomBody)
 	tempParts.push(bottomBody)
 
@@ -321,7 +308,7 @@ const addBoxToWorld = (size) => {
 	const rightInfo = new Ammo.btRigidBodyConstructionInfo(0, rightMotionState, wallRightShape, localInertia)
 	const rightBody = new Ammo.btRigidBody(rightInfo)
 	rightBody.setFriction(config.friction)
-	rightBody.setRestitution(0)
+	rightBody.setRestitution(.6)
 	physicsWorld.addRigidBody(rightBody)
 	tempParts.push(rightBody)
 
@@ -333,7 +320,7 @@ const addBoxToWorld = (size) => {
 	const leftInfo = new Ammo.btRigidBodyConstructionInfo(0, leftMotionState, wallLeftShape, localInertia)
 	const leftBody = new Ammo.btRigidBody(leftInfo)
 	leftBody.setFriction(config.friction)
-	leftBody.setRestitution(0)
+	leftBody.setRestitution(.6)
 	physicsWorld.addRigidBody(leftBody)
 	tempParts.push(leftBody)
 
@@ -348,7 +335,6 @@ const removeBoxFromWorld = () => {
 }
 
 const addDie = (sides, id) => {
-	// console.log(`type`, type)
 	let cType = `c${sides}`
 	cType = cType.replace('100','10')
 	// clone the collider
@@ -367,51 +353,44 @@ const addDie = (sides, id) => {
 }
 
 const rollDie = (die) => {
-	// const magicNumber = 54.057142857
-	// const maxWorldX = width/magicNumber
-	// const maxWorldZ = height/magicNumber
-	// console.log(`bounds`, maxWorldX,maxWorldZ)
-	// const throwTarget = new Vector3(
-	//   lerp(maxWorldX, -maxWorldX, Math.random()),
-	//   -5,
-	//   lerp(maxWorldZ, -maxWorldZ, Math.random())
-	// );
-
-	// const impulse = new Vector3(Math.random(),Math.random(),Math.random())
-	//   .subtract(throwTarget)
-	//   .normalizeToNew()
-	//   // .scale(lerp(-60, 120, Math.random()))
-	//   .scale(25)
-	// die.applyImpulse(force, die.getWorldTransform().getOrigin())
-
 	const force = new Ammo.btVector3(
 		lerp(-config.spinForce, config.spinForce, Math.random()),
 		lerp(-config.spinForce, config.spinForce, Math.random()),
 		lerp(-config.spinForce, config.spinForce, Math.random())
 	)
-
-	// console.log(`force`, force.x(), force.y(), force.z())
 	
 	die.applyImpulse(force, setVector3(4,4,4))
 
-	//TODO: given box width and height, set throw point and force randomly around box perimiter
-
-	// die.setLinearVelocity(setVector3(
-	// 	lerp(forces.xMinForce, forces.xMaxForce, Math.random()),
-	// 	lerp(-config.throwForce, 0, Math.random()),
-	// 	lerp(forces.zMinForce, forces.zMaxForce, Math.random())
-	// ))
 	die.setLinearVelocity(setVector3(
 		lerp(-config.startPosition[0] * .5, -config.startPosition[0] * config.throwForce, Math.random()),
-		lerp(-config.startPosition[1], 0, Math.random()),
+		// lerp(-config.startPosition[1] * .5, -config.startPosition[1] * config.throwForce, Math.random()),
+		lerp(-config.startPosition[1], -config.startPosition[1] * 2, Math.random()),
 		lerp(-config.startPosition[2] * .5, -config.startPosition[2] * config.throwForce, Math.random()),
 	))
-	// die.setLinearVelocity(setVector3(
-	// 	lerp(-config.throwForce*aspect, config.throwForce*aspect, Math.random()),
-	// 	lerp(-config.throwForce, 0, Math.random()),
-	// 	lerp(-config.throwForce, config.throwForce, Math.random())
-	// ))
+}
 
+const removeDie = (data) => {
+	sleepingBodies = sleepingBodies.filter((die) => {
+		let match = die.id === data.id
+		if(match){
+			// remove the mesh from the scene
+			physicsWorld.removeRigidBody(die)
+		}
+		return !match
+	})
+
+	// step the animation forward
+	// requestAnimationFrame(loop)
+}
+
+const clearDice = () => {
+	stopLoop = true
+	// clear all bodies
+	bodies.forEach(body => physicsWorld.removeRigidBody(body))
+	sleepingBodies.forEach(body => physicsWorld.removeRigidBody(body))
+	// clear cache arrays
+	bodies = []
+	sleepingBodies = []
 }
 
 

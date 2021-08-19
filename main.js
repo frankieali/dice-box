@@ -20,7 +20,7 @@ box.initScene().then(()=>{
 	// roll an array of strings
 	// box.roll(['4d6+3','1d12'])
 	// box.roll([{sides:20,qty:2}])
-	// box.add('4d8')
+	// box.add('4d8').add('4d6')
 })
 
 
@@ -47,15 +47,25 @@ box.onDieComplete = (result) => {
 }
 
 // triggers after all dice have settled
+let flag = true
 box.onRollComplete = (results) => {
 	// console.log("time to parse results", results)
 
 	// check for rerolls if they were in the original notation
 	const rerolls = DRP.handleRerolls(results)
 	if(rerolls.length) {
+		// console.log(`rerolls`, rerolls)
 		rerolls.forEach(roll => box.add(roll,roll.groupId))
 		return
 	}
+
+	// if(flag){
+	// 	box.remove(results[1].rolls['4'])
+	// 	box.add('4d6')
+	// 	box.reroll(results[0].rolls['3']).add('1d20')
+	// 	flag = false
+	// 	return
+	// }
 
 	// parse the final roll results
 	const finalResults = DRP.parsedNotation ? DRP.parseFinalResults(results) : results

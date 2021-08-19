@@ -74,6 +74,16 @@ class ParserInterface {
 		});
 		return r;
 	}
+	incrementId(key) {
+		key = key.toString()
+		let splitKey = key.split(".")
+		if(splitKey[1]){
+			splitKey[1] = parseInt(splitKey[1]) + 1
+		} else {
+			splitKey[1] = 1
+		}
+		return splitKey[0] + "." + splitKey[1]
+	}
 
 	// TODO: this needs to return a object of rolls that need to be rolled again, 
 	handleRerolls(rollResults = []) {
@@ -100,7 +110,7 @@ class ParserInterface {
 					switch(mod.type){
 						case "explode":
 						case "compound":
-							console.log(`need a '${mod.type}' reroll`)
+							console.log(`adding '${mod.type}' reroll`)
 							// for compound: the additional rolls for each dice are added together as a single "roll" (calculated by the parser)
 							//TODO: discovered that there's a bug in "dice-roller-parser" for compounded rolls. May have to switch to my local fork if PR is not accepted
 							
@@ -112,7 +122,7 @@ class ParserInterface {
 									group.rolls[key].modifier = mod.type
 									rerolls.push({
 										groupId,
-										rollId: key + '.1',
+										rollId: this.incrementId(key),
 										sides: value.sides,
 										qty: 1
 									})
@@ -120,7 +130,7 @@ class ParserInterface {
 							})
 							break;
 						case "penetrate":
-							console.log("need a 'penetrate' reroll")
+							console.log("adding 'penetrate' reroll")
 							// if die = max then it explodes, but -1 on explode result (calculated by the parser)
 							// ! Turning this into a future feature or option "HackMaster: true" - option for plugin or override
 							// if die is d20 and explodes then it's followed by a d6
@@ -137,7 +147,7 @@ class ParserInterface {
 									group.rolls[key].modifier = mod.type
 									rerolls.push({
 										groupId,
-										rollId: key + '.1',
+										rollId: this.incrementId(key),
 										// sides: value.sides === 100 ? 20 : value.sides === 20 ? 6 : value.sides,
 										sides: value.sides,
 										qty: 1
@@ -146,14 +156,14 @@ class ParserInterface {
 							})
 							break;
 						case "reroll":
-							console.log("need a 'reroll' reroll")
+							console.log("adding 'reroll' reroll")
 							Object.entries(rollsCopy).forEach(([key, value]) => {
 								const max = value.sides
 								if(successTest(value.result, mod.target.mod, mod.target.value.value)  && !value.modifier) {
 									group.rolls[key].modifier = mod.type
 									rerolls.push({
 										groupId,
-										rollId: key + '.1',
+										rollId: this.incrementId(key),
 										sides: value.sides,
 										qty: 1
 									})
@@ -161,7 +171,7 @@ class ParserInterface {
 							})
 							break;
 						case "rerollOnce":
-							console.log("need a 'rerollOnce' reroll")
+							console.log("adding 'rerollOnce' reroll")
 							Object.entries(rollsCopy).forEach(([key, value]) => {
 								const target = mod.target?.value?.value
 								const op = mod.target.mod
@@ -169,7 +179,7 @@ class ParserInterface {
 									group.rolls[key].modifier = mod.type
 									rerolls.push({
 										groupId,
-										rollId: key + '.1',
+										rollId: this.incrementId(key),
 										sides: value.sides,
 										qty: 1
 									})

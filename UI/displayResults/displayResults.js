@@ -19,9 +19,13 @@ class DisplayResults {
 	showResults(data){
 		let rolls
 		if(data.rolls && !Array.isArray(data.rolls)){
-			rolls = data.rolls.map(roll => roll)
+			rolls = Object.values(data.rolls).map(roll => roll)
 		} else {
-			rolls = this.recursiveSearch(data,'rolls').flat()
+			// rolls = this.recursiveSearch(data,'rolls').flat()
+			rolls = Object.values(this.recursiveSearch(data,'rolls')).map(group => {
+				return Object.values(group)
+			}).flat()
+
 		}
 		let total = data.value || rolls.reduce((val,roll) => val + roll.result,0)
 		let resultString = ''
@@ -39,20 +43,14 @@ class DisplayResults {
 			if(roll.critical === "failure" || (roll.result && roll.result === 1)) {
 				classes = 'crit-failure'
 			}
-
-			switch (roll.operation) {
-				case "drop":
-					classes += ' die-dropped'
-					break;
-				case "reroll":
-					classes += ' die-rerolled'
-					break;
-				case "explode":
-					classes += ' die-exploded'
-					break;
-			
-				default:
-					break;
+			if(roll.drop) {
+				classes += ' die-dropped'
+			}
+			if(roll.reroll) {
+				classes += ' die-rerolled'
+			}
+			if(roll.explode) {
+				classes += ' die-exploded'
 			}
 
 			if(classes !== ''){
