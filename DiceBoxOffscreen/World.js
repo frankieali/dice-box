@@ -9,8 +9,8 @@ let canvas, physicsWorker, physicsWorkerInit, offscreen, offscreenWorker, offscr
 const defaultOptions = {
   enableShadows: true,
   delay: 10,
-	gravity: 2, //TODO: high gravity will cause dice piles to jiggle
-	startingHeight: 10,
+	gravity: 4, //TODO: high gravity will cause dice piles to jiggle
+	startingHeight: 15,
 	spinForce: 20,
 	throwForce: 2.5,
 	zoomLevel: 3, // 0-7, can we round it out to 9? And reverse it because higher zoom means closer
