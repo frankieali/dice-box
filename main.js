@@ -49,7 +49,7 @@ box.onDieComplete = (result) => {
 // triggers after all dice have settled
 let flag = true
 box.onRollComplete = (results) => {
-	console.log("time to parse results", results)
+	// console.log("time to parse results", results)
 
 	// check for rerolls if they were in the original notation
 	const rerolls = DRP.handleRerolls(results)
