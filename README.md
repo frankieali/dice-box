@@ -15,6 +15,9 @@ Go ahead, roll 500d6. ~~Individual die roll results only appear in the developer
 ### Update: 8/16/2021
 I've made many updates and enhancement in the past couple of months. Options are now being passed through to the worker threads to give more control over the physics and other dice themes. I've cleaned up a lot of the code and added inline comments. I was able to hook up an external dice parser from [BTMorton](https://github.com/BTMorton/dice_roller) to handle complex rolls such as `roll 4 six-sided dice and drop the lowest` '4d6dl1' and critical rolls '5d10!'. The dice parser can handle any standard rolls from the [Roll20 Specification](https://help.roll20.net/hc/en-us/articles/360037773133-Dice-Reference#DiceReference-RollTemplates).
 
+### Update 8/24/2021
+I now have the roller demo working in Firefox and Safari. I have not tested on mobile devices yet. I've modified the code to conditionally support `offscreenCanvas`.
+
 A working NPM module should be ready soon.
 
 ## Goals
