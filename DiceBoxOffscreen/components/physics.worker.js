@@ -1,9 +1,11 @@
-import * as AmmoJS from "ammo.js/builds/ammo.wasm.js"
 import { lerp } from '../helpers'
+import * as AmmoJS from "ammo.js/builds/ammo.wasm.js"
 
 const ammoWASM = {
   locateFile: () => '../assets/ammo/ammo.wasm.wasm'
 }
+
+// Firefox limitation: https://github.com/vitejs/vite/issues/4586
 
 // there's probably a better place for these variables
 let bodies = []

@@ -20,9 +20,11 @@ class DiceBox{
 		this.zoom = [43,37,32,26.5,23,20.5,18,15.75]
 		this.create()
 	}
-	create(){
+	create(options){
 		// remove any previously existing boxes
 		this.destroy()
+		// extend config with options on create
+		Object.assign(this.config,options)
 		const { aspect, zoomLevel, enableDebugging = true, enableShadows } = this.config
 		const wallHeight = 30
 		const size = this.zoom[zoomLevel]

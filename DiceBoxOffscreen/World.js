@@ -1,118 +1,126 @@
 import { createCanvas } from './components/canvas'
-import worldWorker from './components/world.offscreen?worker'
-import diceWorker from './components/physics.worker?worker'
+import WorldOnscreen from './components/world.onscreen'
+import WorldOffscreen from './components/world.offscreen'
+import physicsWorker from './components/physics.worker?worker'
 import { debounce } from './helpers'
 
 // private variables
-let canvas, physicsWorker, physicsWorkerInit, offscreen, offscreenWorker, offscreenWorkerInit, groupIndex = 0, rollIndex = 0, idIndex = 0
+let canvas, DiceWorld, DiceWorldInit, diceWorker, diceWorkerInit, groupIndex = 0, rollIndex = 0, idIndex = 0
+
 
 const defaultOptions = {
+	id: 'dice-canvas',
   enableShadows: true,
   delay: 10,
 	gravity: 4, //TODO: high gravity will cause dice piles to jiggle
 	startingHeight: 15,
 	spinForce: 20,
-	throwForce: 2.5,
+	throwForce: 4.5,
 	zoomLevel: 3, // 0-7, can we round it out to 9? And reverse it because higher zoom means closer
-	theme: 'nebula'
+	theme: 'nebula',
+	offscreen: true,
 }
 
 class World {
   constructor(container, options = {}){
+		this.config = {...defaultOptions, ...options}
     canvas = createCanvas({
       selector: container,
-      id: 'dice-canvas'
+      id: this.config.id
     })
-    this.config = {...defaultOptions, ...options}
 		this.rollData = []
 		this.onDieComplete = () => {}
 		this.onRollComplete = () => {}
 
-		// transfer controll offscreen
-    offscreen = canvas.transferControlToOffscreen()
+		if ("OffscreenCanvas" in window && "transferControlToOffscreen" in canvas && this.config.offscreen) { 
+			// Ok to use offscreen canvas
+			// transfer controll offscreen
+			DiceWorld = new WorldOffscreen({
+				canvas,
+				options: {...this.config, ...options}
+			})
+		} else {
+			if(this.config.offscreen){
+				console.warn("This browser does not support OffscreenCanvas. Using standard canvas fallback.")
+				this.config.offscreen = false
+			}
+			DiceWorld = new WorldOnscreen({
+				canvas,
+				options: {...this.config, ...options}
+			})
+		}
 
-		// initialize 3D World in which BabylonJS runs
-    offscreenWorker = new worldWorker()
-    // need to initialize the web worker and get confirmation that initialization is complete before other scripts can run
-    // set a property on the worker to a promise that is resolve when the proper message is returned from the worker
-    offscreenWorker.init = new Promise((resolve, reject) => {
-      offscreenWorkerInit = resolve
+		DiceWorld.init = new Promise((resolve, reject) => {
+      DiceWorldInit = resolve
     })
+
+		// create message channels for the two web workers to communicate through
+		const channel = new MessageChannel()
+		DiceWorld.connect(channel.port1)
 
 		// initialize physics world in which AmmoJS runs
-    physicsWorker = new diceWorker()
-    physicsWorker.init = new Promise((resolve, reject) => {
-      physicsWorkerInit = resolve
+    diceWorker = new physicsWorker()
+    diceWorker.init = new Promise((resolve, reject) => {
+      diceWorkerInit = resolve
     })
 
-    // create message channels for the two web workers to communicate through
-    const channel = new MessageChannel()
-    // Setup the connection: Port 1 is for offscreenWorker
-    offscreenWorker.postMessage({
-      action : "connect",
-    },[ channel.port1 ])
-
-    // Setup the connection: Port 2 is for physicsWorker
-    physicsWorker.postMessage({
-      action : "connect",
+    // Setup the connection: Port 2 is for diceWorker
+    diceWorker.postMessage({
+      action: "connect",
     },[ channel.port2 ])
 
     // send resize events to workers - debounced for performance
 		const resizeWorkers = () => {
-      offscreenWorker.postMessage({action: "resize", width: canvas.clientWidth, height:canvas.clientHeight});
-      physicsWorker.postMessage({action: "resize", width: canvas.clientWidth, height:canvas.clientHeight});
+			// canvas.width = data.width
+			// canvas.height = data.height
+			DiceWorld.resize({width: canvas.clientWidth, height: canvas.clientHeight})
+      diceWorker.postMessage({action: "resize", width: canvas.clientWidth, height: canvas.clientHeight});
 		}
 		const debounceResize = debounce(resizeWorkers)
     window.addEventListener("resize", debounceResize)
   }
 
   async initScene(options = {}) {
-    // initalize the offscreen worker
-    offscreenWorker.postMessage({
-      action: "init",
-      canvas: offscreen,
-      width: canvas.clientWidth,
-      height: canvas.clientHeight,
-      options: {...this.config, ...options}
-    }, [offscreen])
 
-		// handle messages from offscreen BabylonJS World
-    offscreenWorker.onmessage = (e) => {
-			switch( e.data.action ) {
-				case "init-complete":
-					offscreenWorkerInit() //fulfill promise so other things can run
-					break;
-				case 'roll-result':
-					const die = e.data.die
-					// map die results back to our rollData
-					this.rollData[die.groupId].rolls[die.rollId].result = die.result
-					// we need to add the die id to our entry, or should that be done here?
-					// TODO: die should have 'sides' or is that unnecessary data passed between workers?
-					this.onDieComplete(die)
-					break;
-				case 'roll-complete':
-					this.onRollComplete(this.getRollResults())
-					break;
-			}
-    }
+		DiceWorld.onInitComplete = () => {
+			DiceWorldInit()
+		}
+		DiceWorld.onRollResult = (die) => {
+			// map die results back to our rollData
+			this.rollData[die.groupId].rolls[die.rollId].result = die.result
+			// TODO: die should have 'sides' or is that unnecessary data passed between workers?
+			this.onDieComplete(die)
+		}
+		DiceWorld.onRollComplete = () => {
+			this.rollData.forEach(rollGroup => {
+				// convert rolls from indexed objects to array
+				rollGroup.rolls = Object.values(rollGroup.rolls).map(roll => roll)
+				// add up the values
+				rollGroup.value = rollGroup.rolls.reduce((val,roll) => val + roll.result,0)
+				// add the modifier
+				rollGroup.value += rollGroup.modifier ? rollGroup.modifier : 0
+			})
+			this.onRollComplete(this.rollData)
+		}
 
     // initialize the AmmoJS physics worker
-    physicsWorker.postMessage({
+    diceWorker.postMessage({
       action: "init",
       width: canvas.clientWidth,
       height: canvas.clientHeight,
 			options: this.config
     })
 
-    physicsWorker.onmessage = (e) => {
+    diceWorker.onmessage = (e) => {
 			switch( e.data.action ) {
 				case "init-complete":
-					physicsWorkerInit() // fulfill promise so other things can run
+					diceWorkerInit() // fulfill promise so other things can run
 			}
     }
 
-    // pomise.all to initialize both offscreenWorker and physicsWorker
-    await Promise.all([offscreenWorker.init, physicsWorker.init])
+    // pomise.all to initialize both offscreenWorker and diceWorker
+		// TODO: yikes. Going to have to async the onscreen class init as well
+		await Promise.all([DiceWorld.init, diceWorker.init])
 
   }
 
@@ -121,10 +129,10 @@ class World {
 		rollIndex = 0
 		groupIndex = 0
 		this.rollData = []
-    // clear all rendered die bodies
-    offscreenWorker.postMessage({action: "clearDice"})
+		// clear all rendered die bodies
+		DiceWorld.clear()
     // clear all physics die bodies
-    physicsWorker.postMessage({action: "clearDice"})
+    diceWorker.postMessage({action: "clearDice"})
 		return this
   }
 
@@ -138,8 +146,8 @@ class World {
 		return this
 	}
 
-	// add a die to another group. groupId is required
-  add(notation, groupId, theme) {
+	// add a die to another group. groupId should be included
+  add(notation, groupId = 0, theme) {
 		if(typeof groupId === 'string' || theme) {
 			this.config.theme = theme
 		}
@@ -165,9 +173,9 @@ class World {
 		// delete the roll from cache
 		delete this.rollData[groupId].rolls[rollId]
 		// remove the die from the render
-		offscreenWorker.postMessage({action: "removeDie", groupId, rollId})
+		DiceWorld.remove({groupId, rollId})
 		// remove the die from the physics bodies - we do this in case there's a reroll. Don't want new dice interacting with a hidden physics body
-		physicsWorker.postMessage({action: "removeDie", id: rollId})
+		diceWorker.postMessage({action: "removeDie", id: rollId})
 		return this
 	}
 
@@ -205,11 +213,8 @@ class World {
 				}
 	
 				rolls[rollId] = roll
-	
-				offscreenWorker.postMessage({
-					action: "addDie",
-					options: roll
-				})
+
+				DiceWorld.add(roll)
 				
 			}
 	
