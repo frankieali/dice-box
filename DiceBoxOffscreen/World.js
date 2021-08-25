@@ -15,7 +15,7 @@ const defaultOptions = {
 	gravity: 4, //TODO: high gravity will cause dice piles to jiggle
 	startingHeight: 15,
 	spinForce: 20,
-	throwForce: 4.5,
+	throwForce: 2.5,
 	zoomLevel: 3, // 0-7, can we round it out to 9? And reverse it because higher zoom means closer
 	theme: 'nebula',
 	offscreen: true,

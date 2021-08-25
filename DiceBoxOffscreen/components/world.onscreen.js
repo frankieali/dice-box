@@ -103,7 +103,6 @@ class WorldOnscreen {
 	}
 
 	clear() {
-		console.log(`clearing`, dieCache, sleeperCache)
 		if(!dieCache.length && !sleeperCache.length) {
 			return
 		}
