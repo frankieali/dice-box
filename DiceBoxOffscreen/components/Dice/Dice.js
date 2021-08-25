@@ -98,7 +98,7 @@ class Dice {
       // console.log(`model.id`, model.id)
       if(model.id === "__root__") return
       model.setEnabled(false)
-      model.receiveShadows = true
+      // model.receiveShadows = true
       model.freezeNormals()
       // model.scaling = new Vector3(1, 1, 1)
       meshes[model.id] = model

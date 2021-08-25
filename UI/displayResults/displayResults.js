@@ -1,4 +1,4 @@
-import { loadCSS } from '../helpers'
+import './displayResults.css'
 
 class DisplayResults {
 	constructor() {
@@ -11,7 +11,6 @@ class DisplayResults {
 	}
 
 	async init(){
-		await loadCSS('./displayResults.css', import.meta.url, 'displayResults')
 		this.elem.append(this.resultsElem)
 		document.body.prepend(this.elem)
 	}

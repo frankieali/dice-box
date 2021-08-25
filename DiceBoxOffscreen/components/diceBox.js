@@ -20,9 +20,11 @@ class DiceBox{
 		this.zoom = [43,37,32,26.5,23,20.5,18,15.75]
 		this.create()
 	}
-	create(){
+	create(options){
 		// remove any previously existing boxes
 		this.destroy()
+		// extend config with options on create
+		Object.assign(this.config,options)
 		const { aspect, zoomLevel, enableDebugging = true, enableShadows } = this.config
 		const wallHeight = 30
 		const size = this.zoom[zoomLevel]
@@ -38,7 +40,7 @@ class DiceBox{
 		else {
 			if(enableShadows) {
 				boxMaterial = new ShadowOnlyMaterial('shadowOnly',this.config.scene)
-				// boxMaterial.alpha = .3
+				boxMaterial.alpha = .5
 				// boxMaterial.diffuseColor = new Color3(1, 1, 1)
 				// boxMaterial.activeLight = lights.directional
 			}
@@ -65,7 +67,7 @@ class DiceBox{
 		wallTop.position.z = size / -2
 		wallTop.scaling = new Vector3(aspect, 1, 1)
 		wallTop.material = boxMaterial
-		wallTop.receiveShadows = true
+		// wallTop.receiveShadows = true
 		wallTop.setParent(this.box)
 
 		// Right Wall
@@ -77,7 +79,7 @@ class DiceBox{
 		wallRight.position.x = size * aspect / 2
 		wallRight.position.y = wallHeight / 2
 		wallRight.material = boxMaterial
-		wallRight.receiveShadows = true
+		// wallRight.receiveShadows = true
 		wallRight.setParent(this.box)
 
 		// South Wall
@@ -90,7 +92,7 @@ class DiceBox{
 		wallBottom.position.z = size / 2
 		wallBottom.scaling = new Vector3(aspect, 1, 1)
 		wallBottom.material = boxMaterial
-		wallBottom.receiveShadows = true
+		// wallBottom.receiveShadows = true
 		wallBottom.setParent(this.box)
 
 		// Left Wall
@@ -102,7 +104,7 @@ class DiceBox{
 		wallLeft.position.x = size * aspect / -2
 		wallLeft.position.y = wallHeight / 2
 		wallLeft.material = boxMaterial
-		wallLeft.receiveShadows = true
+		// wallLeft.receiveShadows = true
 		wallLeft.setParent(this.box)
 	}
 	destroy(){

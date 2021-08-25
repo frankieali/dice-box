@@ -33,8 +33,8 @@ const results = new DisplayResults()
 const submitForm = (e) => {
   e.preventDefault();
 
-	// clear the box
-	box.clear()
+	// clear the results
+	// box.clear() // this is cleared by the .roll method
 	results.clear()
 
 	// roll those dice
@@ -60,8 +60,8 @@ box.onRollComplete = (results) => {
 	}
 
 	// if(flag){
-	// 	box.remove(results[1].rolls['4'])
-	// 	box.add('4d6')
+	// 	box.remove(results[0].rolls['2'])
+	// 	// box.add('4d6')
 	// 	box.reroll(results[0].rolls['3']).add('1d20')
 	// 	flag = false
 	// 	return
