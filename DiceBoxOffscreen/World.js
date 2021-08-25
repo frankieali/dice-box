@@ -12,7 +12,7 @@ const defaultOptions = {
 	id: 'dice-canvas',
   enableShadows: true,
   delay: 10,
-	gravity: 4, //TODO: high gravity will cause dice piles to jiggle
+	gravity: 3, //TODO: high gravity will cause dice piles to jiggle
 	startingHeight: 15,
 	spinForce: 20,
 	throwForce: 2.5,
