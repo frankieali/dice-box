@@ -10,17 +10,18 @@ async function loadStandardMaterial(theme) {
   let diceBumpTexture = await importTextureAsync(`/DiceBoxOffscreen/assets/themes/${theme}/normal.jpg`)
   // let diceTexture = new Texture(`./DiceBox/assets/themes/${theme}/albedo.jpg`)
   // let diceBumpTexture = new Texture(`./DiceBox/assets/themes/${theme}/normal.jpg`)
-  diceMaterial.diffuseTexture = diceTexture
-  // diceMaterial.backFaceCulling = true
-  // diceMaterial.diffuseTexture.vScale = -1
-  // diceMaterial.diffuseTexture.uScale = -1
-  diceMaterial.diffuseTexture.level = 1.3
+	diceMaterial.diffuseTexture = diceTexture
+	diceMaterial.diffuseTexture.level = 1.3
   diceMaterial.bumpTexture = diceBumpTexture
-  // diceMaterial.bumpTexture.vScale = -1
   diceMaterial.bumpTexture.level = 2
-  // diceMaterial.invertNormalMapX = true
   diceMaterial.invertNormalMapY = true
+
+	// additional settings for .babylon file settings with Preserve Z-up right handed coordinate
+	// diceMaterial.diffuseTexture.vScale = -1
+  // diceMaterial.bumpTexture.vScale = -1
+
   diceMaterial.allowShaderHotSwapping = false
+
   // diceMaterial.freeze() // can not freeze until after first mesh
   return diceMaterial
 }
