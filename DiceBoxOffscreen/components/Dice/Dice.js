@@ -1,7 +1,8 @@
 // import { Mesh, PhysicsImpostor, SceneLoader, TransformNode, Vector3 } from '@babylonjs/core'
 import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader'
-import '@babylonjs/loaders/glTF/2.0/glTFLoader'
+// import '@babylonjs/loaders/glTF/2.0/glTFLoader'
 // import '@babylonjs/core/Loading/Plugins/babylonFileLoader'
+import '../../helpers/babylonFileLoader'
 import '@babylonjs/core/Meshes/instancedMesh'
 
 import { loadTheme } from './themes'
@@ -42,14 +43,16 @@ class Dice {
   createInstance() {
     // create die instance
     const dieInstance = diceCombos[this.comboKey].createInstance(`${this.dieType}-instance-${count}`)
-		// start the instance under the floor, out of camera view
-		dieInstance.position.y = -100
+
 
     meshes[this.dieType].getChildTransformNodes().map(child => {
       const locator = child.clone(child.id)
       locator.setAbsolutePosition(child.getAbsolutePosition())
       dieInstance.addChild(locator)
     })
+
+		// start the instance under the floor, out of camera view
+		dieInstance.position.y = -100
 		
 		//TODO: die is loading in the middle of the screen. flashes before animation starts
 		// hide the die, reveal when it's ready to toss or after first update from physics
@@ -77,7 +80,7 @@ class Dice {
 
     // load the theme first - each theme should contain the textures for all dice types
     if (!Object.keys(themes).includes(theme)) {
-      themes[theme] = await loadTheme(theme)
+      themes[theme] = await loadTheme(theme, this.assetPath)
     }
 
     // cache die and theme combo for instances
@@ -91,11 +94,43 @@ class Dice {
     return options
   }
 
-  // load all the dice from a webWorker
-  static async loadModels() {
-    // const models = await SceneLoader.ImportMeshAsync(null,"/DiceBoxOffscreen/assets/models/", "diceMeshes.babylon")
-    const models = await SceneLoader.ImportMeshAsync(null,"/DiceBoxOffscreen/assets/models/", "diceMeshes.glb")
+  // load all the dice models
+  static async loadModels(assetPath) {
+		this.assetPath = assetPath
+		// const modelData = await fetch(`${assetPath}models/diceMeshes.json`,).then(resp => {
+		// 	if(resp.ok) {
+		// 		const contentType = resp.headers.get("content-type")
+
+		// 		if (contentType && contentType.indexOf("application/json") !== -1) {
+		// 			return resp.json()
+		// 		} 
+		// 		else if (resp.type && resp.type === 'basic') {
+		// 			return resp.json()
+		// 		}
+		// 		else {
+		// 			return resp
+		// 		}
+		// 	} else {
+		// 		throw new Error(`Request rejected with status ${resp.status}: ${resp.statusText}`)
+		// 	}
+		// })
+		// .then(data => {
+		// 	// console.log(`data`, data)
+		// 	return JSON.stringify(data)
+		// })
+		// .catch(error => {
+		// 	console.error(error)
+		// 	return error
+		// })
+		// // console.log(`modelData`, modelData)
+    // const models = await SceneLoader.ImportMeshAsync(null,`data:${modelData}`)
+
+
+    const models = await SceneLoader.ImportMeshAsync(null,`${assetPath}models/`, "diceMeshes.babylon")
+    // const models = await SceneLoader.ImportMeshAsync(null,`${assetPath}models/`, "diceMeshes.glb")
     // const model = await SceneLoader.ImportMeshAsync(["die","collider"], "./DiceBox/assets/models/", `d20.glb`)
+
+		// console.log(`models`, models)
     models.meshes.forEach(model => {
       // console.log(`model.id`, model.id)
       if(model.id === "__root__") return
