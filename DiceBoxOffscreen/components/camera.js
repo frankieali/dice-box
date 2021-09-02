@@ -1,4 +1,5 @@
 import { Vector3 } from '@babylonjs/core/Maths/math.vector'
+import { TargetCamera } from '@babylonjs/core/Cameras/targetCamera'
 
 const zoom = [
 	[170,.25],
@@ -12,7 +13,7 @@ const zoom = [
 ]
 
 // this module has dynamically loaded modules so it's been made async
-async function createCamera(options) {
+function createCamera(options) {
   const { debug, zoomLevel } = options
   let camera
   const debugCameraDistance = 45
@@ -25,8 +26,8 @@ async function createCamera(options) {
   //   camera.minZ = 5
   //   camera.maxZ = debugCameraDistance * 2
   // } else {
-	const cameraModule = await import('@babylonjs/core/Cameras/targetCamera')
-	camera = new cameraModule.TargetCamera("TargetCamera1", new Vector3(0, cameraDistance, 0))
+	// const cameraModule = await import('@babylonjs/core/Cameras/targetCamera')
+	camera = new TargetCamera("TargetCamera1", new Vector3(0, cameraDistance, 0))
 	camera.fov = zoom[zoomLevel][1]
 	camera.minZ = 5
 	camera.maxZ = cameraDistance + 1

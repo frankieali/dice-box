@@ -7,11 +7,11 @@ import { SceneOptimizer, SceneOptimizerOptions } from '@babylonjs/core/Misc/scen
 // }
 
 // this module will dynamically import the scene inspector if debug is set to true
-async function createScene(options) {
+function createScene(options) {
   const { engine } = options
   const scene = new Scene(engine)
 
-  scene.useRightHandedSystem = true
+  // scene.useRightHandedSystem = true
   scene.clearColor = new Color4(0,0,0,0);
   // if(debug) {
   //   console.log("initializing scene inspector")

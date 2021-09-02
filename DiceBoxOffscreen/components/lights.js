@@ -10,9 +10,10 @@ const defaultOptions = {
 
 function createLights(options = defaultOptions) {
   const { enableShadows } = options
-  const d_light = new DirectionalLight("DirectionalLight", new Vector3(-0.4, -1, -0.3))
-  d_light.position = new Vector3(5,30,5)
+  const d_light = new DirectionalLight("DirectionalLight", new Vector3(-0.3, -1, 0.4))
+  d_light.position = new Vector3(0,30,0)
   d_light.intensity = .3
+	// d_light.autoUpdateExtends = false;
 
   
   const h_light = new HemisphericLight("HemisphericLight", new Vector3(1, 1, 0))
@@ -30,7 +31,8 @@ function createLights(options = defaultOptions) {
     // d_light.shadowGenerator.useBlurExponentialShadowMap = true;
     d_light.shadowGenerator.darkness = .7;
     // d_light.shadowGenerator.bias = 0
-		d_light.shadowGenerator.frustumEdgeFalloff = 0
+		// d_light.shadowGenerator.frustumEdgeFalloff = 0
+		// d_light.autoUpdateExtends = true;
   }
 
   return {directional: d_light, hemispheric: h_light}

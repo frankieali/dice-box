@@ -4,21 +4,21 @@ import { Texture } from '@babylonjs/core/Materials/Textures/texture'
 // import { PBRMaterial } from '@babylonjs/materials'
 // import { PBRMaterial } from "@babylonjs/core/Materials/PBR/pbrMaterial";
 
-async function loadStandardMaterial(theme) {
+async function loadStandardMaterial(theme,assetPath) {
   let diceMaterial = new StandardMaterial(theme);
-  let diceTexture = await importTextureAsync(`/DiceBoxOffscreen/assets/themes/${theme}/albedo.jpg`)
-  let diceBumpTexture = await importTextureAsync(`/DiceBoxOffscreen/assets/themes/${theme}/normal.jpg`)
+  let diceTexture = await importTextureAsync(`${assetPath}themes/${theme}/albedo.jpg`)
+  let diceBumpTexture = await importTextureAsync(`${assetPath}themes/${theme}/normal.jpg`)
   // let diceTexture = new Texture(`./DiceBox/assets/themes/${theme}/albedo.jpg`)
   // let diceBumpTexture = new Texture(`./DiceBox/assets/themes/${theme}/normal.jpg`)
 	diceMaterial.diffuseTexture = diceTexture
 	diceMaterial.diffuseTexture.level = 1.3
   diceMaterial.bumpTexture = diceBumpTexture
   diceMaterial.bumpTexture.level = 2
-  diceMaterial.invertNormalMapY = true
+  // diceMaterial.invertNormalMapY = true
 
 	// additional settings for .babylon file settings with Preserve Z-up right handed coordinate
-	// diceMaterial.diffuseTexture.vScale = -1
-  // diceMaterial.bumpTexture.vScale = -1
+	diceMaterial.diffuseTexture.vScale = -1
+  diceMaterial.bumpTexture.vScale = -1
 
   diceMaterial.allowShaderHotSwapping = false
 
@@ -51,7 +51,7 @@ async function importTextureAsync(url) {
   })
 }
 
-const loadTheme = async (theme) => {
+const loadTheme = async (theme,assetPath) => {
   let material;
   switch (theme) {
     case 'galaxy':
@@ -62,11 +62,11 @@ const loadTheme = async (theme) => {
     case 'sunrise':
     case 'sunset':
     case 'walnut':
-      material = await loadStandardMaterial(theme)
+      material = await loadStandardMaterial(theme,assetPath)
       // material = await loadPBRMaterial(theme)
       return material
     default:
-      material = await loadStandardMaterial(theme)
+      material = await loadStandardMaterial(theme,assetPath)
       return material
   }
 }
