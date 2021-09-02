@@ -11,12 +11,13 @@
     "serve": "vite preview"
   },
   "dependencies": {
-    "@babylonjs/core": "^5.0.0-alpha.22",
-    "@babylonjs/inspector": "^5.0.0-alpha.22",
-    "@babylonjs/loaders": "^5.0.0-alpha.22",
-    "@babylonjs/materials": "^5.0.0-alpha.22",
+    "@babylonjs/core": "5.0.0-alpha.22",
+    "@babylonjs/inspector": "5.0.0-alpha.22",
+    "@babylonjs/loaders": "5.0.0-alpha.22",
+    "@babylonjs/materials": "5.0.0-alpha.22",
     "ammo.js": "github:kripken/ammo.js",
-    "dice-roller-parser": "github:frankieali/dice_roller"
+    "dice-roller-parser": "github:frankieali/dice_roller",
+    "rollup-plugin-visualizer": "^5.5.2"
   },
   "devDependencies": {
     "vite": "^2.5.0"
