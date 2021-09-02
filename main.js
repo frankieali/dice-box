@@ -5,15 +5,15 @@ import DisplayResults from './UI/displayResults'
 
 // create DiceBox
 const box = new DiceBox('#scene-container', { 
-  enableShadows: true,
-	theme: 'sunrise'
+	enableShadows: true,
+	theme: 'sunset'
 })
 
 // create Notation Parser
 const DRP = new DiceParser()
 
 // intialize our scene
-box.initScene().then(()=>{
+box.init().then(()=>{
 	// console.log(`rollit without the parser`)
 	// roll a simple string
 	// box.roll('4d6+3','sunset')
