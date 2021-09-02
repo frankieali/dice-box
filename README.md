@@ -8,7 +8,7 @@ Fallback support for other browsers coming soon. (Come on Firefox, where's your 
 I actually got it working. ~~This is just an early prototype.~~ 
 I've updated the demo to show basically the early alpha release.
 
-http://dice-box.s3-website.us-east-2.amazonaws.com/
+https://d3rivgcgaqw1jo.cloudfront.net/index.html
 
 Go ahead, roll 500d6. ~~Individual die roll results only appear in the developer's console for now.~~
 
@@ -20,8 +20,16 @@ I now have the roller demo working in Firefox and Safari. I have not tested on m
 
 A working NPM module should be ready soon.
 
+### Update 9/2/2021
+I've done a lot of work to shrink the library file sizes of BabylonJS and AmmoJS. I saved a lot of bytes by chopping down the `babylonFileLoader.js` and doing a custom AmmoJS build. I've also compressed the textures to what I feel is reasonable. The total deliverable is now 2MB and using brotli compression it brings it down to 800kB. That's down from a 5MB package. Not bad for a full 3D environment with a physics engine.
+
+I have a new demo up, now hosted by Amazon CloudFront so you can see the brotli compression in action. Sometimes the dice are very blurry for me on first load. Giving the page a refresh cleared this up.
+
 ## Goals
 I'm hoping to turn this package into an npm module with plug-in capabilities. I'm currently in the early phases of working out the plug-in architecture. Plans are to keep the UI and the dice rolling mechanics seperate, allow for texture and 3d model packs, and extensible dice notation (such as exploding dice).
+
+### Alpha Release
+I've released the initial 3D dice project at https://github.com/3d-dice/dice-box. It can be installed from npm using `npm install @3d-dice/dice-box`. Documentation is a work in progress.
 
 ## Inspiration
 This project was inspired by:
