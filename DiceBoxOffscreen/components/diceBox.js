@@ -6,6 +6,8 @@ import { TransformNode } from '@babylonjs/core/Meshes/transformNode'
 import { Vector3 } from '@babylonjs/core/Maths/math.vector'
 import { ShadowOnlyMaterial } from '@babylonjs/materials/shadowOnly/shadowOnlyMaterial'
 
+// TODO: split off shadowOnlyMaterial as dynamic import
+
 const defaultOptions = {
   size: 6,
   aspect: 300 / 150,
